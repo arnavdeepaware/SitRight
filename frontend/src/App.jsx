@@ -1,3 +1,4 @@
+import Webcam from 'react-webcam';
 import React from "react";
 import "./App.css";
 
@@ -12,6 +13,11 @@ function App() {
         <div className="camera-placeholder">
           <p>Camera Feed Will Appear Here</p>
         </div>
+
+        <div className="App">
+          <CameraDisplay />
+        </div>
+
       </main>
     </div>
   );
