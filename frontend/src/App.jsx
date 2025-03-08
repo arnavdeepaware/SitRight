@@ -14,6 +14,7 @@ function App() {
     <div className={light ? 'light' : 'dark'}>
      
      <Nav />
+<<<<<<< HEAD
     
      
       <button onClick={toggleTheme}>
@@ -21,6 +22,19 @@ function App() {
       </button>
 
       <div>
+=======
+      
+      <div className="card">
+        <button onClick={() => setCount((count) => count + 1)}>
+          count is {count}
+        </button>
+        
+      </div>
+      
+    
+  
+    <div>
+>>>>>>> 324ed7e97b46553a8cea0d5ee6842c6721ca3552
       <header className="header">SitRight</header>
       <main className="main-content">
         <p>Welcome to SitRight!</p>
@@ -29,6 +43,10 @@ function App() {
         <div className="camera-container">
           <Webcam className="webcam" />
           <canvas className="overlay-canvas"></canvas>
+<<<<<<< HEAD
+=======
+          <h1>Camera</h1>
+>>>>>>> 324ed7e97b46553a8cea0d5ee6842c6721ca3552
         </div>
 
         <div className="App">
@@ -37,10 +55,16 @@ function App() {
 
       </main>
     </div>
+<<<<<<< HEAD
     
     </div>
   )
 
+=======
+
+    </>
+    );
+>>>>>>> 324ed7e97b46553a8cea0d5ee6842c6721ca3552
 }
 
 export default App;
