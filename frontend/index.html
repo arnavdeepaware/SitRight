@@ -1,13 +1,91 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SitRight - Posture Detection</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div class="notification" id="notification">Fix your posture!</div>
+    
+    <header>
+        <h1>SitRight</h1>
+        <p class="subtitle">Work Right with SitRight</p>
+    </header>
+    
+    <div class="container">
+        <div class="webcam-container" id="webcam-box">
+            <canvas id="webcam-canvas"></canvas>
+            <div class="posture-score">
+                <span>Score:</span>
+                <span class="score-value" id="score-display">--</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="start-btn" class="btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                Start Monitoring
+            </button>
+            
+            <button id="stop-btn" class="btn-secondary" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="6" y="4" width="4" height="16"></rect>
+                    <rect x="14" y="4" width="4" height="16"></rect>
+                </svg>
+                Stop
+            </button>
+            
+            <button id="toggle-reminder-btn" class="btn-secondary badge">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                Reminder Settings
+            </button>
+        </div>
+        
+        <div class="reminder-settings" id="reminder-settings" style="display: none;">
+            <h2>Reminder Settings</h2>
+            
+            <div class="form-group">
+                <label for="threshold-slider">Posture Score Threshold</label>
+                <input type="range" id="threshold-slider" min="0" max="100" value="70" class="slider">
+                <div class="threshold-value" id="threshold-value">70</div>
+                <p>You'll be reminded when your posture score falls below this threshold.</p>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="sound-notification" checked>
+                    Enable sound notifications
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="visual-notification" checked>
+                    Enable visual notifications
+                </label>
+            </div>
+            
+            <button id="save-reminder-settings" class="btn-primary">Save Settings</button>
+        </div>
+        
+        <div class="connection-status">
+            <span class="status-indicator status-disconnected" id="connection-indicator"></span>
+            <span id="connection-status-text">Not connected to posture detection service</span>
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2025 SitRight • AI-Powered Posture Detection
+    </footer>
+
+
+</body>
 </html>
