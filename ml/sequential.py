@@ -9,6 +9,7 @@ from tensorflow.keras.callbacks import LearningRateScheduler
 from sklearn.metrics import accuracy_score
 from tensorflow.keras.layers import Dense
 import math
+import joblib
 
 
 def distance_2d(x1, y1, x2, y2):
@@ -105,6 +106,8 @@ def train_model(filepath):
     # Normalize features
     scaler = MinMaxScaler()
     X_data = scaler.fit_transform(X_data)
+
+    joblib.dump(scaler, "scaler.pkl")
 
     y_data_original = df['label'].values  # Keep original labels for accuracy calculation
     y_data = y_data_original / 100.0  # Normalize labels

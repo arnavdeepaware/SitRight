@@ -42,7 +42,6 @@ ENV/
 
 # Model files and large datasets
 *.model
-*.pkl
 model_weights.json
 model.json
 
