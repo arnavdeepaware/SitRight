@@ -6,6 +6,7 @@ function Nav() {
     return (
       <div className="body">
         <div className="topnav">
+            <p>SitRight</p>
             <ul>
                 <li><a href = "">Home</a></li>
                 <li><a href = "">Stats</a></li>

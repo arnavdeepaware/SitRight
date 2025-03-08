@@ -6,16 +6,14 @@ import Mascot from "./components/Mascot";
 import "./App.css";
 
 function App() {
-const [postureScore, setPostureScore] = useState(100);
-const [light, setlight] = useState(true)
+  const [postureScore, setPostureScore] = useState(0);
+  const [light, setLight] = useState(true);
 
-const toggleTheme = () => {
-  setlight(!light);
-};
+  const toggleTheme = () => setLight((light) => !light);
+
 
 return (
   <div className={light ? 'light' : 'dark'}>
-
     <Nav />
     <button onClick={toggleTheme}>
     {light ? "🌞" : "🌙"} 
@@ -29,6 +27,7 @@ return (
         <div className="camera-container">
           <Webcam className="webcam" />
           <canvas className="overlay-canvas"></canvas>
+         
         </div>
       {/* Emoji Mascot*/}
         <Mascot postureScore={postureScore} />
