@@ -1,14 +1,24 @@
+/* Mascot Container */
 .mascot-container {
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    flex-direction: row;  /* Align items horizontally */
+    align-items: center;  /* Vertically center items */
     margin-top: 20px;
+    gap: 20px;  /* Adds space between the camera and mascot */
+  }
+  
+  /* Mascot */
+  .mascot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;  /* Center align the emoji and message */
   }
   
   .emoji {
-    font-size: 60px;
+    font-size: 60px; /* Size of the mascot emoji */
   }
   
+  /* Mascot Message */
   .mascot-message {
     margin-top: 10px;
     padding: 10px;
@@ -17,5 +27,5 @@
     border-radius: 8px;
     font-size: 16px;
     text-align: center;
-    width: 250px;
+    width: 250px; /* Control the width of the message container */
   }
