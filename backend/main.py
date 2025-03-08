@@ -7,15 +7,16 @@ import os
 import sys
 import csv
 from datetime import datetime
-import .ml.Predictor as Predictor
+# import .ml.Predictor as Predictor
 
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'ml')))
-# from Predictor import predict_posture
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'ml')))
+from Predictor import predict_posture
 
 import pandas as pd
 
 # Add near the top of the file with other imports
 import os
+
 
 # Initialize pygame mixer with specific settings
 pygame.mixer.pre_init(44100, 16, 2, 2048)  # Changed -16 to 16
@@ -212,7 +213,8 @@ while cap.isOpened():
 
         # Get posture score from ML model
         row_data = prepare_row_for_prediction(landmarks, frame_width, frame_height)
-        posture_score = predict_posture(row_data, model_path)[0][0]
+        scaler_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ml', 'model', 'scaler.pkl')
+        posture_score = predict_posture(row_data, model_path, scaler_path)[0][0]
 
         # Provide feedback based on the model's prediction
         current_time = time.time()
