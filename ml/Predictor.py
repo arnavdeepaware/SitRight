@@ -1,5 +1,6 @@
 import pandas as pd
 import tensorflow as tf
+import joblib
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
@@ -68,6 +69,7 @@ def predict_posture(row, model_path):
       print(row)
       features = extract_features(row)  
       features = np.array(features).reshape(1, -1)  # Reshape for prediction
+      scaler = joblib.load("model/scaler.pkl")
       features = scaler.transform(features)  # Apply the same scaling
       
 
