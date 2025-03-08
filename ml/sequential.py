@@ -84,6 +84,7 @@ def create_model(input_shape):
         Dense(32, activation='relu', input_shape=(input_shape,)),  # Reduce neurons
         Dense(16, activation='relu'),
         Dense(8, activation='relu'),
+        Dense(4, activation='relu'),
         Dense(1, activation='sigmoid')
     ])
 
@@ -160,8 +161,8 @@ def train_model(filepath):
 
     final_model = create_model(X_data.shape[1])
     final_model.fit(X_data, y_data, epochs=12, batch_size=8, verbose=1)
-    final_model.save("model/final_model.h5")
-    print("Final model saved as final_model.h5")
+    final_model.save("model/test-l1.h5")
+    print("Final model saved as test-l1.h5")
 
 if __name__ == "__main__":
     train_model('./data/posture_data.csv')

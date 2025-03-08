@@ -171,7 +171,7 @@ def prepare_row_for_prediction(landmarks, frame_width, frame_height):
     return pd.Series(data)
 
 # Modify the main loop
-model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ml', 'model', 'final_model.h5')
+model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ml', 'model', 'test2.h5')
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
