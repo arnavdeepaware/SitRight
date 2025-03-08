@@ -62,14 +62,14 @@ def extract_features(row, video_width=100, video_height=100):  # Assuming 100x10
 
 scaler = MinMaxScaler()
 
-def predict_posture(row, model_path):
+def predict_posture(row, model_path, scaler_path):
       model = tf.keras.models.load_model(model_path)
     
     # Extract features from the row before prediction
       print(row)
       features = extract_features(row)  
       features = np.array(features).reshape(1, -1)  # Reshape for prediction
-      scaler = joblib.load("model/scaler.pkl")
+      scaler = joblib.load(scaler_path)  # Load the scaler
       features = scaler.transform(features)  # Apply the same scaling
       
 
@@ -78,9 +78,9 @@ def predict_posture(row, model_path):
       return predictions*100
 
 #use this to test predictions for now. WE can add a better way to get data real time later
-df = pd.read_csv('./data/posture_data_2.csv',usecols=lambda col: col != 'timestamp')
-test_row = df.iloc[100]
+# df = pd.read_csv('./data/posture_data_2.csv',usecols=lambda col: col != 'timestamp')
+# test_row = df.iloc[100]
 
 
-output = predict_posture(test_row, './model/final_model.h5')
-print(output)
+# output = predict_posture(test_row, './model/final_model.h5')
+# print(output)
