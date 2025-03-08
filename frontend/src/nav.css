@@ -7,6 +7,7 @@
     display: flex;
     width:100%;
     justify-content: flex-start;
+    gap:20px;
    
 }
 .topnav li{
@@ -18,6 +19,7 @@
 
 .topnav {
     display: flex;
+    justify-content: center;
     background-color: #6101df;
     overflow: hidden;
     width:100%;  
@@ -32,6 +34,7 @@
     text-decoration: none;
     font-size: 2rem;
     padding:20px; 
+    transition: 0.3s;
   }
   
   /* Change the color of links on hover */

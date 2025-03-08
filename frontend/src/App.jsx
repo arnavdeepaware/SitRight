@@ -1,50 +1,43 @@
 import React, { useState } from "react";
+import Nav from "./Nav";
 import Webcam from "react-webcam";
-import Nav from "./nav";
+import Percentage from "./Percentage";
+import Mascot from "./Mascot";
 import "./App.css";
 
-function App() 
-{
+function App() {
+const [postureScore, setPostureScore] = useState(100);
+const [light, setlight] = useState(true)
 
-  const [light, setlight] = useState(true)
+const toggleTheme = () => {
+  setlight(!light);
+};
 
-  const toggleTheme = () => {
-    setlight(!light);
-  };
-
-  return (
-    <div className={light ? 'light' : 'dark'}>
-     
-      <Nav />
-      <button onClick={toggleTheme}>
-      {light ? "Light" : "Dark"} Mode
-      </button>
+return (
+  <div className={light ? 'light' : 'dark'}>
+   
+    <Nav />
+    <button onClick={toggleTheme}>
+    {light ? "🌞" : "🌙"} 
+    </button>
 
       <header className="header">SitRight</header>
       <main className="main-content">
         <p>Welcome to SitRight!</p>
 
-        {/* Camera Placeholder */}
+        {/* Camera Feed */}
         <div className="camera-container">
           <Webcam className="webcam" />
           <canvas className="overlay-canvas"></canvas>
-
-
-          <h1>Camera</h1>
-
         </div>
-
-        <div className="App">
-          
-        </div>
-
+      {/ Emoji Mascot */}
+        <Mascot postureScore={postureScore} />
+        
       </main>
-   
-
-    
+          {/* Posture Score Display */}
+        <Percentage postureScore={postureScore} />
     </div>
-  )
-
+  );
 }
 
 export default App;
