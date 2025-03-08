@@ -11,30 +11,27 @@ function App() {
 
   const toggleTheme = () => setLight((light) => !light);
 
-
-return (
-  <div className={light ? 'light' : 'dark'}>
-    <Nav />
-    <button onClick={toggleTheme}>
-    {light ? "🌞" : "🌙"} 
-    </button>
+  return (
+    <div className={light ? 'light' : 'dark'}>
+      <Nav />
+      <button onClick={toggleTheme}>
+        {light ? "🌞" : "🌙"} 
+      </button>
 
       <header className="header">SitRight</header>
       <main className="main-content">
-        <p>Welcome to SitRight!</p>
-
-        {/* Camera Feed */}
-        <div className="camera-container">
-          <Webcam className="webcam" />
-          <canvas className="overlay-canvas"></canvas>
-         
+        {/* Wrapper for Webcam & Percentage */}
+        <div className="camera-wrapper">
+          <Percentage postureScore={postureScore} />
+          <div className="camera-container">
+            <Webcam className="webcam" />
+            <canvas className="overlay-canvas"></canvas>
+          </div>
         </div>
-      {/* Emoji Mascot*/}
-        <Mascot postureScore={postureScore} />
 
+        {/* Mascot Positioned to the Right */}
+        <Mascot postureScore={postureScore} />
       </main>
-          {/* Posture Score Display */}
-        <Percentage postureScore={postureScore} />
     </div>
   );
 }

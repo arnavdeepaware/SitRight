@@ -1,162 +1,60 @@
-
-.dark
-{
-  background: #2f1934;;
-  color: white;
-
-}
-
-.light{
-  background: white;
-  color: black;
-}
-.dark button{
-  background: #2f2a2a;
-  }
-.light button {
-    background: white;
-    }
-
-
-body {
-  margin: 0;
-  padding: 0;
-  background-color: #2f2a2a;  /* Dark grey background for a sleek look */
-  font-family: 'Arial', sans-serif;
-  color: #fdfbfb; /* Lighter text for readability */
-  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
-  color: #fdfbfb; /* ✅ Darker text for readability */
-}
-
-.main-content {
-  text-align: center;
-  
-}
-
-/* Header Styling */
-.header {
-  width: 100%;
-  font-size: 50px;
-  text-align: center;
-  box-sizing: border-box;
-  font-weight: bold;
-}
-
-.header.dark {
-  color: rgb(255, 255, 255); /* Light text for dark mode */
-}
-
-.header.light {
-  color: #333; /* Dark text for light mode */
-}
-
-/* Dark Mode */
-.dark {
-  background: #2f2a2a;;  /* Deep dark background */
-  color: white;
-  transition: background-color 0.5s ease, color 0.5s ease; 
-}
-
-/* Light Mode */
-.light {
-  background: rgb(255, 255, 255); /* Clean white background */
-  color: #333; /* Darker text for better contrast */
-  transition: background-color 0.5s ease, color 0.5s ease;
-}
-
-/* Camera Container */
-.header{
-  width: 100%;  
-  font-size: 75px;
-  text-align: Center; 
-  box-sizing: border-box;
-}
-.header.dark {
-  color: rgb(255, 255, 255);
-}
-.header.light { 
-  color: black;
-}
-
-.camera-container {
-  width: 640px;
-  height: 480px;
-  border: 10px solid #6101df; /* Purple border for a pop of color */
-  background-color: black;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);  /* Adding shadow for depth */
-  border-radius: 15px;  /* Rounded corners for a softer look */
-  margin: 20px;
-}
-
-.webcam {
-  width: 100%;
-  height: 100%; /* Rounded corners for webcam */
-  z-index: 1;
-}
-
-.overlay-canvas {
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  z-index: 2;  /* Ensures drawings appear over webcam */
-  pointer-events: none;  /* Prevents interaction with canvas */
-  z-index: 2;  /* Ensures drawings appear over webcam */
-  pointer-events: none;  /* Prevents interaction with canvas */
-}
-
-
-/* Button Styling */
-button {
-  width: 150px;
-  width: 100px;
-  height: 50px;
-  border-radius: 25px;  /* Fully rounded edges */
-  border: none;
-  font-size: 18px;
-  margin-left: 10px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  
-}
-
-button:hover {
-  transform: scale(1.1);  /* Slight scaling effect */
-  background-color: #9b6ed3;  /* Slightly darker purple on hover */
-}
-
-/* Navigation Bar Styling */
+/* Navigation Bar */
 .topnav {
   display: flex;
   justify-content: center;
-  background-color: #6101df; /* Purple background */
-  overflow: hidden;
-  width: 100%;
-  font-size: 1.5rem;
-  border-bottom: 3px solid #b87aff;  /* Bottom border for definition */
+  background: rgba(97, 1, 223, 0.9);
+  padding: 15px 0;
+  border-bottom: 3px solid #b87aff;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
 }
 
-.topnav ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+/* Main Layout */
+.main-content {
   display: flex;
-  gap: 20px;
+  justify-content: center;
+  align-items: center;
+  flex-direction: row; /* Keeps webcam and mascot side by side */
+  gap: 30px;
+  margin-top: 20px;
+  position: relative; /* Needed for percentage positioning */
 }
 
-.topnav a {
-  color: black;
-  text-align: center;
-  text-decoration: none;
-  font-size: 1.2rem;
-  padding: 20px;
-  transition: 0.3s ease-in-out;
-  font-weight: bold;
-  text-transform: uppercase;
+/* Camera Wrapper */
+.camera-wrapper {
+  position: relative; /* Allows percentage to be positioned inside */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.topnav a:hover {
-  background-color: #b87aff;
-  color: azure;
-  transform: scale(1.1);
-  transition: all 0.3s ease-in-out;
+/* Camera Container */
+.camera-container {
+  width: 640px;
+  height: 480px;
+  border: 8px solid #b87aff;
+  background: black;
+  box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.6);
+  border-radius: 15px;
+  margin: 20px auto;
+  position: relative;
+}
+
+/* Webcam */
+.webcam {
+  width: 100%;
+  height: 100%;
+  border-radius: 15px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .main-content {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .camera-container {
+    width: 90%;
+    height: auto;
+  }
 }

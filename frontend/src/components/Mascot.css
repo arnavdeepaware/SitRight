@@ -1,21 +1,22 @@
 /* Mascot Container */
 .mascot-container {
     display: flex;
-    flex-direction: row;  /* Align items horizontally */
-    align-items: center;  /* Vertically center items */
-    margin-top: 20px;
-    gap: 20px;  /* Adds space between the camera and mascot */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 250px;
   }
   
   /* Mascot */
   .mascot {
     display: flex;
     flex-direction: column;
-    align-items: center;  /* Center align the emoji and message */
+    align-items: center;
   }
   
+  /* Emoji */
   .emoji {
-    font-size: 60px; /* Size of the mascot emoji */
+    font-size: 60px;
   }
   
   /* Mascot Message */
@@ -27,5 +28,6 @@
     border-radius: 8px;
     font-size: 16px;
     text-align: center;
-    width: 250px; /* Control the width of the message container */
+    width: 250px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   }
