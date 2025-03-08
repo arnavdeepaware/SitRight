@@ -4,8 +4,18 @@ import numpy as np
 import time
 import pygame
 import os
+import sys
 import csv
 from datetime import datetime
+import .ml.Predictor as Predictor
+
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'ml')))
+# from Predictor import predict_posture
+
+import pandas as pd
+
+# Add near the top of the file with other imports
+import os
 
 # Initialize pygame mixer with specific settings
 pygame.mixer.pre_init(44100, 16, 2, 2048)  # Changed -16 to 16
@@ -53,12 +63,6 @@ pose = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.5, min_t
 cap = cv2.VideoCapture(0)
 
 # Initialize calibration variables
-calibration_shoulder_angles = []
-calibration_neck_angles = []
-calibration_frames = 0
-is_calibrated = False
-shoulder_threshold = 0
-neck_threshold = 0
 last_alert_time = time.time()
 alert_cooldown = 3  # seconds
 
@@ -131,7 +135,42 @@ def extract_keypoints(landmarks, frame_width, frame_height):
     
     return data
 
+def prepare_row_for_prediction(landmarks, frame_width, frame_height):
+    """Convert landmarks to a pandas Series in the format expected by the ML model"""
+    data = {
+        'videoWidth': frame_width,
+        'videoHeight': frame_height,
+        'nose_x': landmarks[mp_pose.PoseLandmark.NOSE.value].x * frame_width,
+        'nose_y': landmarks[mp_pose.PoseLandmark.NOSE.value].y * frame_height,
+        'left_eye_inner_x': landmarks[mp_pose.PoseLandmark.LEFT_EYE_INNER.value].x * frame_width,
+        'left_eye_inner_y': landmarks[mp_pose.PoseLandmark.LEFT_EYE_INNER.value].y * frame_height,
+        'left_eye_x': landmarks[mp_pose.PoseLandmark.LEFT_EYE.value].x * frame_width,
+        'left_eye_y': landmarks[mp_pose.PoseLandmark.LEFT_EYE.value].y * frame_height,
+        'left_eye_outer_x': landmarks[mp_pose.PoseLandmark.LEFT_EYE_OUTER.value].x * frame_width,
+        'left_eye_outer_y': landmarks[mp_pose.PoseLandmark.LEFT_EYE_OUTER.value].y * frame_height,
+        'right_eye_inner_x': landmarks[mp_pose.PoseLandmark.RIGHT_EYE_INNER.value].x * frame_width,
+        'right_eye_inner_y': landmarks[mp_pose.PoseLandmark.RIGHT_EYE_INNER.value].y * frame_height,
+        'right_eye_x': landmarks[mp_pose.PoseLandmark.RIGHT_EYE.value].x * frame_width,
+        'right_eye_y': landmarks[mp_pose.PoseLandmark.RIGHT_EYE.value].y * frame_height,
+        'right_eye_outer_x': landmarks[mp_pose.PoseLandmark.RIGHT_EYE_OUTER.value].x * frame_width,
+        'right_eye_outer_y': landmarks[mp_pose.PoseLandmark.RIGHT_EYE_OUTER.value].y * frame_height,
+        'left_ear_x': landmarks[mp_pose.PoseLandmark.LEFT_EAR.value].x * frame_width,
+        'left_ear_y': landmarks[mp_pose.PoseLandmark.LEFT_EAR.value].y * frame_height,
+        'right_ear_x': landmarks[mp_pose.PoseLandmark.RIGHT_EAR.value].x * frame_width,
+        'right_ear_y': landmarks[mp_pose.PoseLandmark.RIGHT_EAR.value].y * frame_height,
+        'mouth_left_x': landmarks[mp_pose.PoseLandmark.MOUTH_LEFT.value].x * frame_width,
+        'mouth_left_y': landmarks[mp_pose.PoseLandmark.MOUTH_LEFT.value].y * frame_height,
+        'mouth_right_x': landmarks[mp_pose.PoseLandmark.MOUTH_RIGHT.value].x * frame_width,
+        'mouth_right_y': landmarks[mp_pose.PoseLandmark.MOUTH_RIGHT.value].y * frame_height,
+        'left_shoulder_x': landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x * frame_width,
+        'left_shoulder_y': landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y * frame_height,
+        'right_shoulder_x': landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x * frame_width,
+        'right_shoulder_y': landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y * frame_height
+    }
+    return pd.Series(data)
+
 # Modify the main loop
+model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ml', 'model', 'final_model.h5')
 while cap.isOpened():
     ret, frame = cap.read()
     if not ret:
@@ -171,61 +210,32 @@ while cap.isOpened():
             cv2.putText(frame, name, (x+5, y-5), 
                        cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 0, 0), 1)
 
-        # STEP 2: Pose Detection
-        # Extract key body landmarks
-        left_shoulder = (int(landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x * frame.shape[1]),
-                         int(landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y * frame.shape[0]))
-        right_shoulder = (int(landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x * frame.shape[1]),
-                          int(landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y * frame.shape[0]))
-        left_ear = (int(landmarks[mp_pose.PoseLandmark.LEFT_EAR.value].x * frame.shape[1]),
-                    int(landmarks[mp_pose.PoseLandmark.LEFT_EAR.value].y * frame.shape[0]))
-        right_ear = (int(landmarks[mp_pose.PoseLandmark.RIGHT_EAR.value].x * frame.shape[1]),
-                     int(landmarks[mp_pose.PoseLandmark.RIGHT_EAR.value].y * frame.shape[0]))
+        # Get posture score from ML model
+        row_data = prepare_row_for_prediction(landmarks, frame_width, frame_height)
+        posture_score = predict_posture(row_data, model_path)[0][0]
 
-        # STEP 3: Angle Calculation
-        shoulder_angle = calculate_angle(left_shoulder, right_shoulder, (right_shoulder[0], 0))
-        neck_angle = calculate_angle(left_ear, left_shoulder, (left_shoulder[0], 0))
+        # Provide feedback based on the model's prediction
+        current_time = time.time()
+        if posture_score < 50:  # Below 50% is considered poor posture
+            status = f"Poor Posture ({posture_score:.1f}%)"
+            color = (0, 0, 255)  # Red
+            if current_time - last_alert_time > alert_cooldown:
+                print("Poor posture detected! Please sit up straight.")
+                if os.path.exists(sound_file):
+                    play_sound(sound_file)
+                last_alert_time = current_time
+        else:
+            status = f"Good Posture ({posture_score:.1f}%)"
+            color = (0, 255, 0)  # Green
+            stop_sound()
 
-        # STEP 1: Calibration
-        if not is_calibrated and calibration_frames < 30:
-            calibration_shoulder_angles.append(shoulder_angle)
-            calibration_neck_angles.append(neck_angle)
-            calibration_frames += 1
-            cv2.putText(frame, f"Calibrating... {calibration_frames}/30", (10, 30), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
-        elif not is_calibrated:
-            shoulder_threshold = np.mean(calibration_shoulder_angles) - 10
-            neck_threshold = np.mean(calibration_neck_angles) - 10
-            is_calibrated = True
-            print(f"Calibration complete. Shoulder threshold: {shoulder_threshold:.1f}, Neck threshold: {neck_threshold:.1f}")
-
-        # Draw skeleton and angles
+        # Draw the skeleton
         mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-        midpoint = ((left_shoulder[0] + right_shoulder[0]) // 2, (left_shoulder[1] + right_shoulder[1]) // 2)
-        draw_angle(frame, left_shoulder, midpoint, (midpoint[0], 0), shoulder_angle, (255, 0, 0))
-        draw_angle(frame, left_ear, left_shoulder, (left_shoulder[0], 0), neck_angle, (0, 255, 0))
 
-        # STEP 4: Feedback
-        if is_calibrated:
-            current_time = time.time()
-            if shoulder_angle < shoulder_threshold or neck_angle < neck_threshold:
-                status = "Poor Posture"
-                color = (0, 0, 255)  # Red
-                if current_time - last_alert_time > alert_cooldown:
-                    print("Poor posture detected! Please sit up straight.")
-                    if os.path.exists(sound_file):
-                        play_sound(sound_file)
-                    last_alert_time = current_time
-            else:
-                status = "Good Posture"
-                color = (0, 255, 0)  # Green
-                stop_sound()  # Stop the sound when posture is good
-
-            cv2.putText(frame, status, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv2.LINE_AA)
-            cv2.putText(frame, f"Shoulder Angle: {shoulder_angle:.1f}/{shoulder_threshold:.1f}", (10, 60), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv2.LINE_AA)
-            cv2.putText(frame, f"Neck Angle: {neck_angle:.1f}/{neck_threshold:.1f}", (10, 90), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv2.LINE_AA)
+        # Display the posture score
+        cv2.putText(frame, status, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv2.LINE_AA)
+        cv2.putText(frame, f"Posture Score: {posture_score:.1f}%", (10, 60), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv2.LINE_AA)
 
     # Display the frame
     cv2.imshow('Posture Corrector', frame)
