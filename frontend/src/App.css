@@ -1,51 +1,61 @@
-*.dark
-{
-  background: black;
-  color: white;
-
-}
-
-.light{
-  background: white;
-  color: black;
-}
-
 body {
   margin: 0;
   padding: 0;
-  background-color: #2f2a2a;  /* ✅ Light grey for better contrast */
-  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
-  color: #fdfbfb; /* ✅ Darker text for readability */
+  background-color: #2f2a2a;  /* Dark grey background for a sleek look */
+  font-family: 'Arial', sans-serif;
+  color: #fdfbfb; /* Lighter text for readability */
 }
 
 .main-content {
   text-align: center;
-
 }
-.header{
+
+/* Header Styling */
+.header {
   width: 100%;
   font-size: 50px;
-  text-align: Center; 
+  text-align: center;
   box-sizing: border-box;
-}
-.header.dark {
-  color: rgb(255, 255, 255);
-}
-.header.light { 
-  color: black;
+  font-weight: bold;
 }
 
+.header.dark {
+  color: rgb(255, 255, 255); /* Light text for dark mode */
+}
+
+.header.light {
+  color: #333; /* Dark text for light mode */
+}
+
+/* Dark Mode */
+.dark {
+  background: rgb(39, 35, 59);  /* Deep dark background */
+  color: white;
+  transition: background-color 0.5s ease, color 0.5s ease; 
+}
+
+/* Light Mode */
+.light {
+  background: rgb(255, 255, 255); /* Clean white background */
+  color: #333; /* Darker text for better contrast */
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+/* Camera Container */
 .camera-container {
   width: 640px;
   height: 480px;
-  border: 10px solid #6101df;
+  border: 10px solid #6101df; /* Purple border for a pop of color */
   background-color: black;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);  /* Adding shadow for depth */
+  border-radius: 15px;  /* Rounded corners for a softer look */
+  margin: 20px auto;
 }
 
 .webcam {
   width: 100%;
   height: 100%;
-  z-index: 1;
+  border-radius: 15px; /* Rounded corners for webcam */
 }
 
 .overlay-canvas {
@@ -56,66 +66,58 @@ body {
   pointer-events: none;  /* Prevents interaction with canvas */
 }
 
-
+/* Button Styling */
 button {
-  width: 100px;
+  width: 150px;
   height: 50px;
-  background-color: #b87aff;
-  border-radius: 20px;
+  background-color: #b87aff; /* Soft purple background */
+  border-radius: 25px;  /* Fully rounded edges */
   border: none;
-  font-size: 30px;
-  margin-left: 5px;
- 
-}
-button:hover
-{
-  transform:scale(0.9);
+  font-size: 18px;
+  margin-left: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); /* Shadow for depth */
 }
 
-.light, .dark {
-  transition: background-color 0.5s ease, color 0.5s ease;
-}
-.topnav ul {
-    list-style: none; 
-    padding: 0;
-    margin: 0;
-    display: flex;
-    width:100%;
-    justify-content: flex-start;
-    gap:20px;
-
-}
-.topnav li{
-    padding: 0;
-    margin: 0;
+button:hover {
+  transform: scale(1.1);  /* Slight scaling effect */
+  background-color: #9b6ed3;  /* Slightly darker purple on hover */
 }
 
-
-
+/* Navigation Bar Styling */
 .topnav {
-    display: flex;
-    justify-content: center;
-    background-color: #6101df;
-    overflow: hidden;
-    width:100%;
-    font-size: 2rem;
-    }
+  display: flex;
+  justify-content: center;
+  background-color: #6101df; /* Purple background */
+  overflow: hidden;
+  width: 100%;
+  font-size: 1.5rem;
+  border-bottom: 3px solid #b87aff;  /* Bottom border for definition */
+}
 
+.topnav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: 20px;
+}
 
 .topnav a {
-    float: right;
-    color:black;
-    text-align: center;
-    text-decoration: none;
-    font-size: 2rem;
-    padding:20px; 
-    transition: 0.3s;
-  }
+  color: black;
+  text-align: center;
+  text-decoration: none;
+  font-size: 1.2rem;
+  padding: 20px;
+  transition: 0.3s ease-in-out;
+  font-weight: bold;
+  text-transform: uppercase;
+}
 
-  /* Change the color of links on hover */
-    .topnav a:hover {
-    background-color:#b87aff;
-    color:azure;
-    transform: scale(1.1);
-    transition: all 0.3s ease-in-out;
-  }
+.topnav a:hover {
+  background-color: #b87aff;
+  color: azure;
+  transform: scale(1.1);
+  transition: all 0.3s ease-in-out;
+}

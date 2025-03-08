@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import Nav from "./Nav";
 import Webcam from "react-webcam";
-import Percentage from "./Percentage";
-import Mascot from "./Mascot";
+import Percentage from "./components/Percentage";
+import Mascot from "./components/Mascot";
 import "./App.css";
 
 function App() {

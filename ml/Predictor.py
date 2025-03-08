@@ -76,9 +76,9 @@ def predict_posture(row, model_path):
       return predictions*100
 
 #use this to test predictions for now. WE can add a better way to get data real time later
-df = pd.read_csv('/data/posture_data_2.csv',usecols=lambda col: col != 'timestamp')
+df = pd.read_csv('./data/posture_data_2.csv',usecols=lambda col: col != 'timestamp')
 test_row = df.iloc[100]
 
 
-output = predict_posture(test_row, '/model/final_model.h5')
+output = predict_posture(test_row, './model/final_model.h5')
 print(output)
