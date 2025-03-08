@@ -10,12 +10,13 @@ function App() {
         <p>Welcome to SitRight!</p>
 
         {/* Camera Placeholder */}
-        <div className="camera-placeholder">
-          <p>Camera Feed Will Appear Here</p>
+        <div className="camera-container">
+          <Webcam className="webcam" />
+          <canvas className="overlay-canvas"></canvas>
         </div>
 
         <div className="App">
-          <CameraDisplay />
+          
         </div>
 
       </main>

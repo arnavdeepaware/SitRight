@@ -28,3 +28,28 @@ body {
   height: 100vh;
 }
 
+.camera-container {
+  align-items: center;
+  position: relative;
+  width: 640px;
+  height: 480px;
+  margin: 20px auto;
+  border: 2px solid white;
+  background-color: black;
+}
+
+.webcam {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.overlay-canvas {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  z-index: 2;  /* Ensures drawings appear over webcam */
+  pointer-events: none;  /* Prevents interaction with canvas */
+}
+
