@@ -5,21 +5,23 @@ import './App.css'
 import Nav from './nav.jsx'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [light, setlight] = useState(true)
+
+  const toggleTheme = () => {
+    setlight(!light);
+  };
 
   return (
-    <>
+    <div className={light ? 'light' : 'dark'}>
      
      <Nav />
-      
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        
-      </div>
-      
-    </>
+    
+     
+      <button onClick={toggleTheme}>
+      {light ? "Light" : "Dark"} Mode
+      </button>
+    
+    </div>
   )
 }
 

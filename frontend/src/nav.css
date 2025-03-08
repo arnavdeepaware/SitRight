@@ -1,11 +1,5 @@
 
-.body{
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Roboto', sans-serif;
-    background-color: #f0f0f0;
-}
+
 .topnav ul {
     list-style: none; 
     padding: 0;
@@ -24,7 +18,7 @@
 
 .topnav {
     display: flex;
-    background-color: black;
+    background-color: #6101df;
     overflow: hidden;
     width:100%;  
     font-size: 2rem;
@@ -33,7 +27,7 @@
 
 .topnav a {
     float: right;
-    color:white;
+    color:black;
     text-align: center;
     text-decoration: none;
     font-size: 2rem;
@@ -42,17 +36,9 @@
   
   /* Change the color of links on hover */
     .topnav a:hover {
-    background-color:crimson;
+    background-color:#b87aff;
     color:azure;
     transform: scale(1.1);
     transition: all 0.3s ease-in-out;
   }
-
-nav
-{
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: black;
-}
 

@@ -7,9 +7,9 @@ function Nav() {
       <div className="body">
         <div className="topnav">
             <ul>
-                <li><a href = "">home</a></li>
+                <li><a href = "">Home</a></li>
                 <li><a href = "">Stats</a></li>
-                <li><a href = "">more</a></li>
+                <li><a href = "">More</a></li>
             </ul>
 
         </div>
