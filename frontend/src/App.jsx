@@ -1,12 +1,24 @@
 import React, { useState } from "react";
+import Nav from "./Nav";
 import Webcam from "react-webcam";
 import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0);
+ 
+const [light, setlight] = useState(true)
 
-  return (
-    <div>
+const toggleTheme = () => {
+  setlight(!light);
+};
+
+return (
+  <div className={light ? 'light' : 'dark'}>
+
+    <Nav />
+    <button onClick={toggleTheme}>
+    {light ? "Light" : "Dark"} Mode
+    </button>
+
       <header className="header">SitRight</header>
       <main className="main-content">
         <p>Welcome to SitRight!</p>
@@ -17,8 +29,7 @@ function App() {
           <canvas className="overlay-canvas"></canvas>
         </div>
 
-        {/* Counter (Example) */}
-        <button onClick={() => setCount(count + 1)}>Count: {count}</button>
+
       </main>
     </div>
   );
