@@ -1,0 +1,21 @@
+.mascot-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+  }
+  
+  .emoji {
+    font-size: 60px;
+  }
+  
+  .mascot-message {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #333;
+    color: white;
+    border-radius: 8px;
+    font-size: 16px;
+    text-align: center;
+    width: 250px;
+  }

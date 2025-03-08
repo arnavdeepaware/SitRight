@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import Nav from "./Nav";
 import Webcam from "react-webcam";
+import Percentage from "./Percentage";
+import Mascot from "./Mascot";
 import "./App.css";
 
 function App() {
- 
+const [postureScore, setPostureScore] = useState(100);
 const [light, setlight] = useState(true)
 
 const toggleTheme = () => {
@@ -16,7 +18,7 @@ return (
 
     <Nav />
     <button onClick={toggleTheme}>
-    {light ? "Light" : "Dark"} Mode
+    {light ? "🌞" : "🌙"} 
     </button>
 
       <header className="header">SitRight</header>
@@ -28,9 +30,12 @@ return (
           <Webcam className="webcam" />
           <canvas className="overlay-canvas"></canvas>
         </div>
-
+      {/* Emoji Mascot*/}
+        <Mascot postureScore={postureScore} />
 
       </main>
+          {/* Posture Score Display */}
+        <Percentage postureScore={postureScore} />
     </div>
   );
 }

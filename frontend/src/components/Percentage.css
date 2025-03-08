@@ -1,0 +1,14 @@
+.percentage-container {
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    background-color: #222;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  
+  .score {
+    color: #00ff00;
+  }
