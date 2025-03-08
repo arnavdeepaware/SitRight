@@ -161,5 +161,5 @@ def train_model(filepath):
     print("Final model saved as final_model.h5")
 
 if __name__ == "__main__":
-    train_model('/data/posture_data.csv')
+    train_model('./data/posture_data.csv')
 
