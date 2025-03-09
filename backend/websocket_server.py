@@ -9,15 +9,44 @@ import time
 from pose_detector import mp_pose, mp_drawing, prepare_row_for_prediction
 from Predictor import predict_posture
 from mediapipe.python.solutions import drawing_styles
+import pygame
+import os
 
 # Initialize pose detection
 pose = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.5, min_tracking_confidence=0.5)
+
+# Initialize pygame mixer after other initializations
+pygame.mixer.pre_init(44100, 16, 2, 2048)
+pygame.mixer.init()
 
 # Initialize variables
 last_alert_time = time.time()
 alert_cooldown = 3
 model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ml', 'model', 'test2.h5')
 scaler_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ml', 'model', 'scaler.pkl')
+
+# Add sound variables
+sound_file = os.path.join(os.path.dirname(__file__), "alert.wav")
+sound = None
+is_playing = False
+
+# Add sound control functions
+def play_sound():
+    global sound, is_playing
+    try:
+        if sound is None and os.path.exists(sound_file):
+            sound = pygame.mixer.Sound(sound_file)
+        if sound and not is_playing:
+            sound.play(-1)  # Loop the sound
+            is_playing = True
+    except Exception as e:
+        print(f"Error playing sound: {str(e)}")
+
+def stop_sound():
+    global sound, is_playing
+    if sound and is_playing:
+        sound.stop()
+        is_playing = False
 
 async def process_frame(frame_data):
     """Process a single frame and return posture analysis"""
@@ -73,9 +102,13 @@ async def process_frame(frame_data):
         print(f"Error processing frame: {str(e)}")
         return None
 
+# Update the handle_websocket function
 async def handle_websocket(websocket):
     """Handle WebSocket connections"""
     print("New client connected")
+    threshold = 70  # Default threshold
+    sound_enabled = True  # Default sound setting
+    
     try:
         async for message in websocket:
             try:
@@ -83,11 +116,31 @@ async def handle_websocket(websocket):
                 if data['type'] == 'frame':
                     result = await process_frame(data['data'])
                     if result:
+                        score = result['score']
+                        if score >= (threshold + 5):
+                            result['status'] = 'good'
+                            stop_sound()
+                        elif score >= (threshold - 5):
+                            result['status'] = 'warning'
+                            stop_sound()
+                        else:
+                            result['status'] = 'bad'
+                            if sound_enabled:
+                                play_sound()
                         await websocket.send(json.dumps(result))
+                elif data['type'] == 'threshold':
+                    threshold = data['value']
+                    print(f"Updated threshold to: {threshold}")
+                elif data['type'] == 'sound':
+                    sound_enabled = data['enabled']
+                    if not sound_enabled:
+                        stop_sound()
+                    print(f"Sound notifications {'enabled' if sound_enabled else 'disabled'}")
             except Exception as e:
                 print(f"Error handling message: {str(e)}")
     except websockets.exceptions.ConnectionClosed:
         print("Client disconnected")
+        stop_sound()  # Ensure sound is stopped when client disconnects
 
 async def main():
     """Start WebSocket server"""

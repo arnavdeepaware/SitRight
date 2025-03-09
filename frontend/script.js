@@ -116,7 +116,21 @@ function saveReminderSettings() {
     reminderSettings.style.display = 'none';
     toggleReminderButton.classList.add('active');
     
-    // Show a notification to confirm
+    // Send new settings to server
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        // Send threshold update
+        ws.send(JSON.stringify({
+            type: 'threshold',
+            value: scoreThreshold
+        }));
+        
+        // Send sound preference
+        ws.send(JSON.stringify({
+            type: 'sound',
+            enabled: soundNotificationCheckbox.checked
+        }));
+    }
+    
     showNotification("Posture reminders enabled!");
 }
 
@@ -147,10 +161,20 @@ function connectToBackend() {
             updateAnnotatedFrame(data.annotatedFrame);
         }
         
-        // Only update score at specified intervals
+        // Update score and check against threshold
         if (data.score !== undefined && currentTime - lastScoreUpdate >= SCORE_UPDATE_INTERVAL) {
-            document.getElementById('score-display').textContent = `${data.score}%`;
-            checkPosture(data.score);
+            const score = data.score;
+            document.getElementById('score-display').textContent = `${score}%`;
+            checkPosture(score);
+            
+            // Add visual feedback for posture status
+            const webcamBox = document.getElementById('webcam-box');
+            if (data.status === 'bad') {
+                webcamBox.style.border = '2px solid #ef4444';
+            } else {
+                webcamBox.style.border = '2px solid #10b981';
+            }
+            
             lastScoreUpdate = currentTime;
         }
     };
@@ -189,22 +213,30 @@ function showNotification(message) {
 function checkPosture(score) {
     currentScore = score;
     scoreDisplay.textContent = score;
+    const threshold = parseInt(thresholdSlider.value);
     
-    // Change score color based on value
-    if (score < 50) {
-        scoreDisplay.style.color = '#ef4444'; // Red for bad posture
-    } else if (score < 70) {
-        scoreDisplay.style.color = '#f59e0b'; // Amber for mediocre posture
+    // Update score color based on thresholds
+    if (score >= (threshold + 5)) {
+        scoreDisplay.style.color = '#10b981';  // Green
+        webcamBox.classList.remove('bad-posture', 'warning-posture');
+        webcamBox.classList.add('good-posture');
+    } else if (score >= (threshold - 5)) {
+        scoreDisplay.style.color = '#fbbf24';  // Yellow
+        webcamBox.classList.remove('bad-posture', 'good-posture');
+        webcamBox.classList.add('warning-posture');
     } else {
-        scoreDisplay.style.color = '#10b981'; // Green for good posture
-    }
-    
-    // Check if reminder should be triggered
-    if (remindersEnabled && score < scoreThreshold) {
-        const now = Date.now();
-        if (now - lastReminderTime > REMINDER_COOLDOWN) {
-            triggerReminder();
-            lastReminderTime = now;
+        scoreDisplay.style.color = '#ef4444';  // Red
+        webcamBox.classList.remove('good-posture', 'warning-posture');
+        webcamBox.classList.add('bad-posture');
+        
+        if (remindersEnabled) {
+            const now = Date.now();
+            if (now - lastReminderTime > REMINDER_COOLDOWN) {
+                if (visualNotificationCheckbox.checked) {
+                    showNotification("Fix your posture!");
+                }
+                lastReminderTime = now;
+            }
         }
     }
 }

@@ -73,6 +73,20 @@ p.subtitle {
     background: #000;
     border-radius: 8px;
     overflow: hidden;
+    border: 2px solid transparent;
+    transition: border-color 0.3s ease;
+}
+
+.webcam-container.bad-posture {
+    border-color: #ef4444;
+}
+
+.webcam-container.warning-posture {
+    border-color: #fbbf24;
+}
+
+.webcam-container.good-posture {
+    border-color: #10b981;
 }
 
 #webcam-video {
