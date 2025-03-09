@@ -36,7 +36,8 @@ body {
 
 header {
     text-align: center;
-    margin-bottom: 2.5rem;
+    margin-bottom: 3rem;  /* Increase bottom margin */
+    padding: 1rem;
 }
 
 h1 {
@@ -64,6 +65,7 @@ p.subtitle {
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 2rem;  /* Add gap between elements */
 }
 
 .webcam-container {
@@ -71,10 +73,12 @@ p.subtitle {
     width: 640px;
     height: 480px;
     background: #000;
-    border-radius: 8px;
+    border-radius: 12px;  /* Slightly larger radius */
     overflow: hidden;
     border: 2px solid transparent;
     transition: border-color 0.3s ease;
+    margin-bottom: 2.5rem;  /* Add space after webcam */
+    box-shadow: var(--shadow);
 }
 
 .webcam-container.bad-posture {
@@ -125,25 +129,29 @@ p.subtitle {
 
 .controls {
     display: flex;
-    gap: 1rem;
-    margin-bottom: 2.5rem;
+    gap: 1.5rem;  /* Increase gap between buttons */
+    margin: 1rem 0 3rem;  /* Add vertical margins */
     flex-wrap: wrap;
     justify-content: center;
+    width: 100%;
+    max-width: 600px;  /* Limit width of button container */
 }
 
 button {
-    padding: 0.75rem 1.5rem;
+    padding: 0.85rem 1.75rem;  /* Slightly larger buttons */
     border: none;
     border-radius: 30px;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 400;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;  /* More space between icon and text */
     box-shadow: var(--shadow);
     letter-spacing: 0.02em;
+    min-width: 160px;  /* Minimum button width */
+    justify-content: center;
 }
 
 .btn-primary {
@@ -171,12 +179,14 @@ button {
 
 .reminder-settings {
     background-color: var(--surface);
-    padding: 1.75rem;
+    padding: 2rem;  /* More padding */
     border-radius: 16px;
     width: 90%;
     max-width: 500px;
     box-shadow: var(--shadow);
     border: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: 1.5rem;  /* Space above panel */
+    margin-bottom: 2rem;  /* Space below panel */
 }
 
 .reminder-settings h2 {
@@ -248,13 +258,9 @@ input[type="checkbox"] {
 }
 
 .connection-status {
-    margin-top: 1.5rem;
-    font-size: 0.85rem;
-    color: var(--text-tertiary);
-    background-color: rgba(255, 255, 255, 0.03);
-    padding: 0.5rem 1.25rem;
+    margin-top: 2rem;  /* More space above status */
+    padding: 0.75rem 1.5rem;
     border-radius: 30px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 @media (max-width: 768px) {
@@ -264,11 +270,24 @@ input[type="checkbox"] {
     
     .controls {
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
+        gap: 1rem;
     }
     
     button {
-        width: 80%;
+        width: 100%;
+        max-width: 300px;
+        margin: 0 auto;
+    }
+    
+    body {
+        padding: 1.5rem;
+    }
+    
+    .webcam-container {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 4/3;
     }
 }
 
@@ -355,8 +374,9 @@ input[type="checkbox"] {
 
 /* Footer */
 footer {
-    margin-top: 2.5rem;
-    font-size: 0.8rem;
+    margin-top: 3rem;  /* More space above footer */
+    padding: 1.5rem;
+    font-size: 0.85rem;
     color: var(--text-tertiary);
     opacity: 0.7;
 }
