@@ -14,6 +14,62 @@
     --glow: 0 0 20px rgba(124, 58, 237, 0.3);
 }
 
+/* Add these new styles after the root variables */
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem 2rem;
+    background: rgba(26, 26, 34, 0.8);
+    backdrop-filter: blur(10px);
+    position: fixed;
+    width: 100%;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.nav-left {
+    display: flex;
+    align-items: center;
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+nav .logo {
+    font-size: 1.5rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--primary-light), var(--primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-right: 1rem;
+}
+
+.nav-home {
+    color: var(--text-secondary);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.nav-home:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(5px);
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -34,9 +90,15 @@ body {
     letter-spacing: 0.015em;
 }
 
+/* Update header positioning */
 header {
     text-align: center;
-    margin-bottom: 3rem;  /* Increase bottom margin */
+    padding-top: 6rem;
+    margin-bottom: 2rem;
+    width: 100%;
+}
+
+.header-content {
     padding: 1rem;
 }
 
@@ -65,7 +127,7 @@ p.subtitle {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2rem;  /* Add gap between elements */
+    gap: 2rem;
 }
 
 .webcam-container {
@@ -73,11 +135,11 @@ p.subtitle {
     width: 640px;
     height: 480px;
     background: #000;
-    border-radius: 12px;  /* Slightly larger radius */
+    border-radius: 20px;
     overflow: hidden;
     border: 2px solid transparent;
     transition: border-color 0.3s ease;
-    margin-bottom: 2.5rem;  /* Add space after webcam */
+    margin-bottom: 2.5rem;
     box-shadow: var(--shadow);
 }
 
@@ -129,16 +191,16 @@ p.subtitle {
 
 .controls {
     display: flex;
-    gap: 1.5rem;  /* Increase gap between buttons */
-    margin: 1rem 0 3rem;  /* Add vertical margins */
+    gap: 1.5rem;
+    margin: 1rem 0 3rem;
     flex-wrap: wrap;
     justify-content: center;
     width: 100%;
-    max-width: 600px;  /* Limit width of button container */
+    max-width: 600px;
 }
 
 button {
-    padding: 0.85rem 1.75rem;  /* Slightly larger buttons */
+    padding: 0.85rem 1.75rem;
     border: none;
     border-radius: 30px;
     font-size: 0.95rem;
@@ -147,10 +209,10 @@ button {
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    gap: 0.75rem;  /* More space between icon and text */
+    gap: 0.75rem;
     box-shadow: var(--shadow);
     letter-spacing: 0.02em;
-    min-width: 160px;  /* Minimum button width */
+    min-width: 160px;
     justify-content: center;
 }
 
@@ -179,14 +241,14 @@ button {
 
 .reminder-settings {
     background-color: var(--surface);
-    padding: 2rem;  /* More padding */
-    border-radius: 16px;
+    padding: 2rem;
+    border-radius: 24px;
     width: 90%;
     max-width: 500px;
     box-shadow: var(--shadow);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    margin-top: 1.5rem;  /* Space above panel */
-    margin-bottom: 2rem;  /* Space below panel */
+    margin-top: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 .reminder-settings h2 {
@@ -258,12 +320,29 @@ input[type="checkbox"] {
 }
 
 .connection-status {
-    margin-top: 2rem;  /* More space above status */
+    margin-top: 2rem;
     padding: 0.75rem 1.5rem;
     border-radius: 30px;
 }
 
 @media (max-width: 768px) {
+    nav {
+        padding: 1rem;
+    }
+    
+    .nav-home {
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+    }
+    
+    nav .logo {
+        font-size: 1.3rem;
+    }
+
+    header {
+        padding-top: 5rem;
+    }
+
     .webcam-container {
         aspect-ratio: 4/3;
     }
@@ -288,6 +367,17 @@ input[type="checkbox"] {
         width: 100%;
         height: auto;
         aspect-ratio: 4/3;
+    }
+
+    .back-to-home {
+        position: absolute;
+        top: 1rem;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    header {
+        padding-top: 4rem;
     }
 }
 
@@ -374,7 +464,7 @@ input[type="checkbox"] {
 
 /* Footer */
 footer {
-    margin-top: 3rem;  /* More space above footer */
+    margin-top: 3rem;
     padding: 1.5rem;
     font-size: 0.85rem;
     color: var(--text-tertiary);
@@ -392,3 +482,30 @@ footer {
     animation: pulse 2.5s infinite;
     border: 2px solid #10b981;
 }
+
+/* Update back-to-home positioning */
+.back-to-home {
+    position: absolute;
+    top: 50%;
+    left: 2rem;
+    transform: translateY(-50%);
+}
+
+.back-to-home .btn-secondary {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    min-width: auto;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.back-to-home .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(-5px);
+}
+
+
