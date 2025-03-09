@@ -26,11 +26,16 @@ let scoreThreshold = 70;
 let lastReminderTime = 0;
 const REMINDER_COOLDOWN = 30000; // 30 seconds cooldown
 let notificationSound = null;
+let ws = null;
+let videoStream = null;
+const FPS = 10;
+let videoInterval = null;
 
 // Initialize canvas size
 function initCanvas() {
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
+    const video = document.getElementById('webcam-video');
+    canvas.width = 640;  // Match video dimensions
+    canvas.height = 480; // Match video dimensions
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#94a3b8';
@@ -61,20 +66,18 @@ function init() {
 }
 
 // Start posture monitoring
-function startMonitoring() {
+async function startMonitoring() {
     if (isMonitoring) return;
+    
+    const webcamReady = await setupWebcam();
+    if (!webcamReady) return;
     
     isMonitoring = true;
     startButton.disabled = true;
     stopButton.disabled = false;
     webcamBox.classList.add('monitoring-active');
     
-    // This is where you would connect to your backend service
-    // For this demo, we'll use mock data
     connectToBackend();
-    
-    // Start webcam mock (in real app, this would be a stream from the camera)
-    startMockWebcam();
 }
 
 // Stop posture monitoring
@@ -86,11 +89,11 @@ function stopMonitoring() {
     stopButton.disabled = true;
     webcamBox.classList.remove('monitoring-active');
     
-    // Disconnect from backend
-    disconnectFromBackend();
-    
-    // Stop webcam mock
-    stopMockWebcam();
+    stopVideoProcessing();
+    if (ws) {
+        ws.close();
+        ws = null;
+    }
 }
 
 // Toggle reminder settings panel
@@ -115,12 +118,31 @@ function saveReminderSettings() {
 
 // Mock connection to backend
 function connectToBackend() {
-    // In a real app, this would establish a WebSocket connection to your ML backend
-    setTimeout(() => {
+    ws = new WebSocket('ws://localhost:8765');
+    
+    ws.onopen = () => {
         isConnected = true;
         updateConnectionStatus(true);
         showNotification("Connected to posture detection service");
-    }, 1000);
+        startVideoProcessing();
+    };
+    
+    ws.onclose = () => {
+        isConnected = false;
+        updateConnectionStatus(false);
+        showNotification("Disconnected from posture detection service");
+        stopVideoProcessing();
+    };
+    
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.score !== undefined) {
+            checkPosture(Math.round(data.score));
+        }
+        if (data.annotatedFrame) {
+            updateAnnotatedFrame(data.annotatedFrame);
+        }
+    };
 }
 
 // Mock disconnection from backend
@@ -244,3 +266,67 @@ document.addEventListener('DOMContentLoaded', init);
 
 // Handle window resize
 window.addEventListener('resize', initCanvas);
+
+async function setupWebcam() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                width: { ideal: 640 },
+                height: { ideal: 480 },
+                facingMode: 'user'
+            } 
+        });
+        const video = document.getElementById('webcam-video');
+        video.srcObject = stream;
+        await video.play(); // Ensure video starts playing
+        videoStream = stream;
+        return true;
+    } catch (err) {
+        console.error("Error accessing webcam:", err);
+        showNotification("Error accessing webcam. Please make sure it's connected and permissions are granted.");
+        return false;
+    }
+}
+
+function startVideoProcessing() {
+    const video = document.getElementById('webcam-video');
+    const canvas = document.getElementById('webcam-canvas');
+    const ctx = canvas.getContext('2d');
+
+    video.addEventListener('play', () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+    });
+
+    videoInterval = setInterval(() => {
+        if (ws && ws.readyState === WebSocket.OPEN && video.readyState === 4) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const frame = canvas.toDataURL('image/jpeg', 0.8);
+            ws.send(JSON.stringify({
+                type: 'frame',
+                data: frame
+            }));
+        }
+    }, 1000 / FPS);
+}
+
+function stopVideoProcessing() {
+    if (videoInterval) {
+        clearInterval(videoInterval);
+        videoInterval = null;
+    }
+    if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        videoStream = null;
+    }
+}
+
+function updateAnnotatedFrame(frameData) {
+    const canvas = document.getElementById('webcam-canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.onload = () => {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    };
+    img.src = frameData;
+}
