@@ -17,6 +17,8 @@ import pandas as pd
 # Add near the top of the file with other imports
 import os
 
+# Add at the top with other global variables
+threshold = 70  # Default threshold
 
 # Initialize pygame mixer with specific settings
 pygame.mixer.pre_init(44100, 16, 2, 2048)  # Changed -16 to 16
@@ -56,6 +58,12 @@ def stop_sound():
         sound.stop()
         is_playing = False
         print("Stopped playing sound")
+
+# Add a function to update threshold
+def update_threshold(new_threshold):
+    global threshold
+    threshold = new_threshold
+    print(f"Updated threshold to: {threshold}")
 
 # Initialize MediaPipe Pose and webcam
 mp_pose = mp.solutions.pose
@@ -216,20 +224,29 @@ while cap.isOpened():
         scaler_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ml', 'model', 'scaler.pkl')
         posture_score = predict_posture(row_data, model_path, scaler_path)[0][0]
 
+        # Update the feedback section where posture score is evaluated
         # Provide feedback based on the model's prediction
         current_time = time.time()
-        if posture_score < 50:  # Below 50% is considered poor posture
-            status = f"Poor Posture ({posture_score:.1f}%)"
+        
+        # Convert posture_score to percentage (0-100)
+        posture_score = int(float(posture_score) * 100)
+        
+        if posture_score >= (threshold + 5):  # Good posture
+            status = f"Good Posture ({posture_score}%)"
+            color = (0, 255, 0)  # Green
+            stop_sound()
+        elif posture_score >= (threshold - 5):  # Warning zone
+            status = f"Warning: Posture Needs Attention ({posture_score}%)"
+            color = (0, 165, 255)  # Yellow/Orange in BGR
+            stop_sound()
+        else:  # Bad posture
+            status = f"Poor Posture ({posture_score}%)"
             color = (0, 0, 255)  # Red
             if current_time - last_alert_time > alert_cooldown:
                 print("Poor posture detected! Please sit up straight.")
                 if os.path.exists(sound_file):
                     play_sound(sound_file)
                 last_alert_time = current_time
-        else:
-            status = f"Good Posture ({posture_score:.1f}%)"
-            color = (0, 255, 0)  # Green
-            stop_sound()
 
         # Draw the skeleton
         mp_drawing.draw_landmarks(frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)

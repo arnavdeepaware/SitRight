@@ -1,13 +1,135 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SitRight - Posture Detection</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="script.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="notification" id="notification">Fix your posture!</div>
+    
+    <header>
+        <nav>
+            <div class="nav-left">
+                <div class="logo">SitRight</div>
+            </div>
+            <div class="nav-right">
+                <a href="landing.html" class="nav-home">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    Home
+                </a>
+            </div>
+        </nav>
+        <div class="header-content">
+            <p class="subtitle">Work Right with SitRight</p>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="webcam-container" id="webcam-box">
+            <video id="webcam-video" autoplay playsinline></video>
+            <canvas id="webcam-canvas"></canvas>
+        </div>
+
+        <div class="score-widget">
+            <div class="score-ring">
+                <svg viewBox="0 0 100 100">
+                    <circle class="score-ring-circle" cx="50" cy="50" r="45" />
+                    <circle class="score-ring-progress" cx="50" cy="50" r="45" />
+                </svg>
+                <div class="score-content">
+                    <span class="score-value" id="score-display">--</span>
+                    <span class="score-label">Score</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="start-btn" class="btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                Start Monitoring
+            </button>
+            
+            <button id="stop-btn" class="btn-secondary" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="6" y="4" width="4" height="16"></rect>
+                    <rect x="14" y="4" width="4" height="16"></rect>
+                </svg>
+                Stop
+            </button>
+            
+            <button id="toggle-reminder-btn" class="btn-secondary badge">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+                Settings
+            </button>
+        </div>
+        
+        <div class="reminder-settings" id="reminder-settings" style="display: none;">
+            <h2>Settings</h2>
+            
+            <div class="form-group">
+                <label for="threshold-slider">Posture Score Threshold</label>
+                <input type="range" id="threshold-slider" min="0" max="100" value="70" class="slider">
+                <div class="threshold-value" id="threshold-value">70</div>
+                <p>You'll be reminded when your posture score falls below this threshold.</p>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="sound-notification" checked>
+                    Enable sound notifications
+                </label>
+            </div>
+            
+            <button id="save-reminder-settings" class="btn-primary">Save Settings</button>
+        </div>
+        
+        <div class="connection-status">
+            <span class="status-indicator status-disconnected" id="connection-indicator"></span>
+            <span id="connection-status-text">Not connected to posture detection service</span>
+        </div>
+        
+        <div class="session-chart" id="session-chart" style="display: none;">
+            <h2>Session Analysis</h2>
+            <canvas id="scoreChart"></canvas>
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2025 SitRight • AI-Powered Posture Detection
+    </footer>
+
+    <div id="graphPopup" class="popup-overlay" style="display: none;">
+        <div class="popup-content">
+            <div class="popup-header">
+                <h2>Session Analysis</h2>
+                <button class="close-popup" id="closePopup">×</button>
+            </div>
+            <div class="popup-body">
+                <canvas id="popupScoreChart"></canvas>
+                <div class="popup-footer">
+                    <button id="exportButton" class="btn-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Export Session Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
 </html>
