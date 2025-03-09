@@ -128,19 +128,17 @@ async def handle_websocket(websocket):
                             if sound_enabled:
                                 play_sound()
                         await websocket.send(json.dumps(result))
-                elif data['type'] == 'threshold':
-                    threshold = data['value']
-                    print(f"Updated threshold to: {threshold}")
-                elif data['type'] == 'sound':
-                    sound_enabled = data['enabled']
+                elif data['type'] == 'settings':
+                    threshold = data.get('threshold', threshold)
+                    sound_enabled = data.get('sound', True)
                     if not sound_enabled:
                         stop_sound()
-                    print(f"Sound notifications {'enabled' if sound_enabled else 'disabled'}")
+                    print(f"Updated settings - Threshold: {threshold}, Sound: {sound_enabled}")
             except Exception as e:
                 print(f"Error handling message: {str(e)}")
     except websockets.exceptions.ConnectionClosed:
         print("Client disconnected")
-        stop_sound()  # Ensure sound is stopped when client disconnects
+        stop_sound()
 
 async def main():
     """Start WebSocket server"""

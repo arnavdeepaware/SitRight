@@ -11,7 +11,6 @@ const connectionIndicator = document.getElementById('connection-indicator');
 const connectionStatusText = document.getElementById('connection-status-text');
 const notification = document.getElementById('notification');
 const soundNotificationCheckbox = document.getElementById('sound-notification');
-const visualNotificationCheckbox = document.getElementById('visual-notification');
 const canvas = document.getElementById('webcam-canvas');
 const webcamBox = document.getElementById('webcam-box');
 const ctx = canvas.getContext('2d');
@@ -116,22 +115,17 @@ function saveReminderSettings() {
     reminderSettings.style.display = 'none';
     toggleReminderButton.classList.add('active');
     
-    // Send new settings to server
+    // Send settings to server
     if (ws && ws.readyState === WebSocket.OPEN) {
-        // Send threshold update
         ws.send(JSON.stringify({
-            type: 'threshold',
-            value: scoreThreshold
-        }));
-        
-        // Send sound preference
-        ws.send(JSON.stringify({
-            type: 'sound',
-            enabled: soundNotificationCheckbox.checked
+            type: 'settings',
+            sound: soundNotificationCheckbox.checked,
+            threshold: scoreThreshold
         }));
     }
     
-    showNotification("Posture reminders enabled!");
+    // Only show connection status changes
+    showNotification("Settings saved");
 }
 
 // Mock connection to backend
@@ -199,23 +193,24 @@ function updateConnectionStatus(connected) {
     }
 }
 
-// Show notification
+// Update showNotification function to only show connection status
 function showNotification(message) {
-    notification.textContent = message;
-    notification.style.display = 'block';
-    
-    setTimeout(() => {
-        notification.style.display = 'none';
-    }, 3000);
+    if (message.includes("Connected") || message.includes("Disconnected") || message.includes("Settings")) {
+        notification.textContent = message;
+        notification.style.display = 'block';
+        
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 3000);
+    }
 }
 
-// Check posture and trigger reminders if needed
+// Update checkPosture function
 function checkPosture(score) {
     currentScore = score;
     scoreDisplay.textContent = score;
     const threshold = parseInt(thresholdSlider.value);
     
-    // Update score color based on thresholds
     if (score >= (threshold + 5)) {
         scoreDisplay.style.color = '#10b981';  // Green
         webcamBox.classList.remove('bad-posture', 'warning-posture');
@@ -229,12 +224,10 @@ function checkPosture(score) {
         webcamBox.classList.remove('good-posture', 'warning-posture');
         webcamBox.classList.add('bad-posture');
         
-        if (remindersEnabled) {
+        // Only trigger sound notification for bad posture
+        if (remindersEnabled && soundNotificationCheckbox.checked) {
             const now = Date.now();
             if (now - lastReminderTime > REMINDER_COOLDOWN) {
-                if (visualNotificationCheckbox.checked) {
-                    showNotification("Fix your posture!");
-                }
                 lastReminderTime = now;
             }
         }

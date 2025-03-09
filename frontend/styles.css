@@ -283,18 +283,51 @@ input[type="checkbox"] {
     top: 1rem;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(124, 58, 237, 0.9);
+    background: rgba(124, 58, 237, 0.95);
     color: white;
     padding: 0.75rem 1.5rem;
     border-radius: 30px;
     box-shadow: var(--shadow);
     z-index: 1000;
-    animation: fadeIn 0.3s ease-out;
     display: none;
     backdrop-filter: blur(8px);
     font-size: 0.9rem;
     font-weight: 400;
     letter-spacing: 0.02em;
+    transition: all 0.3s ease;
+}
+
+.notification-animate {
+    animation: slideDown 0.3s ease-out, fadeOut 0.3s ease-out 2.7s;
+}
+
+@keyframes slideDown {
+    0% { 
+        transform: translate(-50%, -100%);
+        opacity: 0;
+    }
+    100% { 
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Add styles for different notification types */
+.notification.warning {
+    background: rgba(251, 191, 36, 0.95);
+}
+
+.notification.error {
+    background: rgba(239, 68, 68, 0.95);
+}
+
+.notification.success {
+    background: rgba(16, 185, 129, 0.95);
 }
 
 /* Badge icon */
