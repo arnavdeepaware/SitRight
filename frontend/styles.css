@@ -172,23 +172,6 @@ p.subtitle {
     z-index: 2;
 }
 
-.posture-score {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 3;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 5px 10px;
-    border-radius: 4px;
-    color: white;
-}
-
-.score-value {
-    font-size: 1.4rem;
-    font-weight: 500;
-    transition: color 0.3s ease;
-}
-
 .controls {
     display: flex;
     gap: 1.5rem;
@@ -506,6 +489,100 @@ footer {
 .back-to-home .btn-secondary:hover {
     background: rgba(255, 255, 255, 0.1);
     transform: translateX(-5px);
+}
+
+/* Add score widget styles */
+.score-widget {
+    position: fixed;
+    right: 2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(26, 26, 34, 0.8);
+    backdrop-filter: blur(12px);
+    border-radius: 50%;
+    padding: 0.5rem;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    z-index: 100;
+}
+
+.score-ring {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.score-ring svg {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.score-ring-circle {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 8;
+}
+
+.score-ring-progress {
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 283;
+    stroke-dashoffset: 283;
+    transition: stroke-dashoffset 0.3s ease, stroke 0.3s ease;
+}
+
+.score-content {
+    text-align: center;
+    z-index: 1;
+}
+
+.score-value {
+    display: block;
+    font-size: 2.5rem;
+    font-weight: 600;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+    background: linear-gradient(135deg, var(--primary-light), var(--primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    transition: color 0.3s ease;
+}
+
+.score-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Add responsive styles */
+@media (max-width: 768px) {
+    .score-widget {
+        position: static;
+        transform: none;
+        margin: 1rem auto;
+    }
+    
+    .score-ring {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .score-value {
+        font-size: 2rem;
+    }
+}
+
+/* Remove old posture-score styles */
+.posture-score {
+    display: none;
 }
 
 

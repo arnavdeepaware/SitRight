@@ -34,9 +34,18 @@
         <div class="webcam-container" id="webcam-box">
             <video id="webcam-video" autoplay playsinline></video>
             <canvas id="webcam-canvas"></canvas>
-            <div class="posture-score">
-                <span>Score:</span>
-                <span class="score-value" id="score-display">--</span>
+        </div>
+
+        <div class="score-widget">
+            <div class="score-ring">
+                <svg viewBox="0 0 100 100">
+                    <circle class="score-ring-circle" cx="50" cy="50" r="45" />
+                    <circle class="score-ring-progress" cx="50" cy="50" r="45" />
+                </svg>
+                <div class="score-content">
+                    <span class="score-value" id="score-display">--</span>
+                    <span class="score-label">Score</span>
+                </div>
             </div>
         </div>
         

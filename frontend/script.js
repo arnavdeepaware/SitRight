@@ -210,21 +210,27 @@ function checkPosture(score) {
     currentScore = score;
     scoreDisplay.textContent = score;
     const threshold = parseInt(thresholdSlider.value);
+    const progressCircle = document.querySelector('.score-ring-progress');
+    const circumference = 2 * Math.PI * 45; // radius = 45
+    
+    // Update progress ring
+    const offset = circumference - (score / 100) * circumference;
+    progressCircle.style.strokeDashoffset = offset;
     
     if (score >= (threshold + 5)) {
-        scoreDisplay.style.color = '#10b981';  // Green
+        progressCircle.style.stroke = '#10b981';  // Green
         webcamBox.classList.remove('bad-posture', 'warning-posture');
         webcamBox.classList.add('good-posture');
     } else if (score >= (threshold - 5)) {
-        scoreDisplay.style.color = '#fbbf24';  // Yellow
+        progressCircle.style.stroke = '#fbbf24';  // Yellow
         webcamBox.classList.remove('bad-posture', 'good-posture');
         webcamBox.classList.add('warning-posture');
     } else {
-        scoreDisplay.style.color = '#ef4444';  // Red
+        progressCircle.style.stroke = '#ef4444';  // Red
         webcamBox.classList.remove('good-posture', 'warning-posture');
         webcamBox.classList.add('bad-posture');
         
-        // Only trigger sound notification for bad posture
+        // Sound notification logic remains the same
         if (remindersEnabled && soundNotificationCheckbox.checked) {
             const now = Date.now();
             if (now - lastReminderTime > REMINDER_COOLDOWN) {
