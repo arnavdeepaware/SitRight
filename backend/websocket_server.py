@@ -11,6 +11,9 @@ from Predictor import predict_posture
 from mediapipe.python.solutions import drawing_styles
 import pygame
 import os
+import csv
+from datetime import datetime
+import pandas as pd
 
 # Initialize pose detection
 pose = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.5, min_tracking_confidence=0.5)
@@ -47,6 +50,9 @@ def stop_sound():
     if sound and is_playing:
         sound.stop()
         is_playing = False
+
+# Add session data variable
+session_data = []
 
 async def process_frame(frame_data):
     """Process a single frame and return posture analysis"""
@@ -108,6 +114,8 @@ async def handle_websocket(websocket):
     print("New client connected")
     threshold = 70  # Default threshold
     sound_enabled = True  # Default sound setting
+    global session_data
+    session_data = []  # Reset session data for new connection
     
     try:
         async for message in websocket:
@@ -117,6 +125,12 @@ async def handle_websocket(websocket):
                     result = await process_frame(data['data'])
                     if result:
                         score = result['score']
+                        # Record timestamp and score
+                        session_data.append({
+                            'timestamp': datetime.now().strftime('%H:%M:%S'),
+                            'score': score
+                        })
+                        
                         if score >= (threshold + 5):
                             result['status'] = 'good'
                             stop_sound()
@@ -133,7 +147,18 @@ async def handle_websocket(websocket):
                     sound_enabled = data.get('sound', True)
                     if not sound_enabled:
                         stop_sound()
-                    print(f"Updated settings - Threshold: {threshold}, Sound: {sound_enabled}")
+                elif data['type'] == 'stop':
+                    # Save session data to CSV when stopping
+                    if session_data:
+                        df = pd.DataFrame(session_data)
+                        csv_path = 'session_data.csv'
+                        df.to_csv(csv_path, index=False)
+                        print("Sending session data to client") # Add logging
+                        # Send the data back to client
+                        await websocket.send(json.dumps({
+                            'type': 'session_data',
+                            'data': session_data
+                        }))
             except Exception as e:
                 print(f"Error handling message: {str(e)}")
     except websockets.exceptions.ConnectionClosed:

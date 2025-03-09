@@ -585,4 +585,127 @@ footer {
     display: none;
 }
 
+/* Add these styles at the end of the file */
+
+.session-chart {
+    background: var(--surface);
+    padding: 2rem;
+    border-radius: 20px;
+    margin: 2rem 0;
+    width: 100%;
+    max-width: 1000px;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.session-chart h2 {
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+    font-size: 1.4rem;
+    font-weight: 400;
+}
+
+#scoreChart {
+    width: 100% !important;
+    height: 400px !important;
+    margin: 0 auto;
+}
+
+/* Add these styles at the end of the file */
+
+.popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.popup-content {
+    background: var(--surface);
+    width: 90%;
+    max-width: 800px;
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.popup-header h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 400;
+}
+
+.close-popup {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    line-height: 1;
+    transition: color 0.3s ease;
+}
+
+.close-popup:hover {
+    color: var(--text-primary);
+}
+
+.popup-body {
+    padding: 2rem;
+    height: 500px;
+}
+
+#popupScoreChart {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Add these styles */
+
+.popup-footer {
+    padding-top: 1.5rem;
+    display: flex;
+    justify-content: center;
+}
+
+.popup-footer .btn-secondary {
+    background: var(--surface-light);
+    color: var(--text-primary);
+    padding: 0.75rem 1.5rem;
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.popup-footer .btn-secondary:hover {
+    background: var(--primary);
+    transform: translateY(-2px);
+}
+
+.popup-footer .btn-secondary svg {
+    transition: transform 0.3s ease;
+}
+
+.popup-footer .btn-secondary:hover svg {
+    transform: translateY(2px);
+}
+
 
