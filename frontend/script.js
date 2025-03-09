@@ -30,6 +30,10 @@ let ws = null;
 let videoStream = null;
 const FPS = 10;
 let videoInterval = null;
+let lastScoreUpdate = 0;
+let lastFrameUpdate = 0;
+const SCORE_UPDATE_INTERVAL = 1150; // 1.15 seconds
+const FRAME_UPDATE_INTERVAL = 100; // 100ms for smoother video
 
 // Initialize canvas size
 function initCanvas() {
@@ -135,12 +139,19 @@ function connectToBackend() {
     };
     
     ws.onmessage = (event) => {
+        const currentTime = Date.now();
         const data = JSON.parse(event.data);
-        if (data.score !== undefined) {
-            checkPosture(Math.round(data.score));
-        }
+        
+        // Always update the annotated frame for smooth visualization
         if (data.annotatedFrame) {
             updateAnnotatedFrame(data.annotatedFrame);
+        }
+        
+        // Only update score at specified intervals
+        if (data.score !== undefined && currentTime - lastScoreUpdate >= SCORE_UPDATE_INTERVAL) {
+            document.getElementById('score-display').textContent = `${data.score}%`;
+            checkPosture(data.score);
+            lastScoreUpdate = currentTime;
         }
     };
 }
@@ -299,13 +310,21 @@ function startVideoProcessing() {
     });
 
     videoInterval = setInterval(() => {
+        const currentTime = Date.now();
+        
         if (ws && ws.readyState === WebSocket.OPEN && video.readyState === 4) {
+            // Always draw the video frame for smooth display
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const frame = canvas.toDataURL('image/jpeg', 0.8);
-            ws.send(JSON.stringify({
-                type: 'frame',
-                data: frame
-            }));
+            
+            // Only send frame for processing at specified intervals
+            if (currentTime - lastFrameUpdate >= FRAME_UPDATE_INTERVAL) {
+                const frame = canvas.toDataURL('image/jpeg', 0.8);
+                ws.send(JSON.stringify({
+                    type: 'frame',
+                    data: frame
+                }));
+                lastFrameUpdate = currentTime;
+            }
         }
     }, 1000 / FPS);
 }
