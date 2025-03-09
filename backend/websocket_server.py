@@ -8,6 +8,7 @@ import os
 import time
 from pose_detector import mp_pose, mp_drawing, prepare_row_for_prediction
 from Predictor import predict_posture
+from mediapipe.python.solutions import drawing_styles
 
 # Initialize pose detection
 pose = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.5, min_tracking_confidence=0.5)
@@ -34,20 +35,38 @@ async def process_frame(frame_data):
         if results.pose_landmarks:
             landmarks = results.pose_landmarks.landmark
             
-            # Get posture score
-            row_data = prepare_row_for_prediction(landmarks, frame_width, frame_height)
-            posture_score = predict_posture(row_data, model_path, scaler_path)[0][0]
+            try:
+                row_data = prepare_row_for_prediction(landmarks, frame_width, frame_height)
+                posture_score = predict_posture(row_data, model_path, scaler_path)[0][0]
+                # Round the score to nearest integer percentage
+                score = round(float(posture_score))
+                print("Posture score:", score)
+            except Exception as e:
+                print("Error in prediction:", str(e))
+                return None
 
-            # Draw skeleton on frame
+            # Create a separate frame for visual display
             annotated_frame = frame.copy()
-            mp_drawing.draw_landmarks(annotated_frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+            
+            # Draw skeleton with custom style
+            mp_drawing.draw_landmarks(
+                annotated_frame,
+                results.pose_landmarks,
+                mp_pose.POSE_CONNECTIONS,
+                landmark_drawing_spec=drawing_styles.get_default_pose_landmarks_style(),
+                connection_drawing_spec=mp_drawing.DrawingSpec(
+                    color=(255, 255, 255),  # White lines
+                    thickness=2,
+                    circle_radius=1
+                )
+            )
 
             # Convert frame back to base64
-            _, buffer = cv2.imencode('.jpg', annotated_frame)
+            _, buffer = cv2.imencode('.jpg', annotated_frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
             annotated_frame_base64 = base64.b64encode(buffer).decode('utf-8')
 
             return {
-                'score': float(posture_score),
+                'score': score,  # Already rounded to integer
                 'annotatedFrame': f'data:image/jpeg;base64,{annotated_frame_base64}'
             }
     except Exception as e:
