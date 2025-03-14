@@ -167,3 +167,7 @@ def train_model(filepath):
 if __name__ == "__main__":
     train_model('./data/posture_data.csv')
 
+
+
+#hHhHhHJUIYTREWQQWERTYUIOPhHhHhHAHAHAHAERHUDEWHGBNKJHHEHEHEHHEHEHEHHEHEHHEH                                  
+
