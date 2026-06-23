@@ -4,8 +4,10 @@ import joblib
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 
+
 def distance_2d(x1, y1, x2, y2):
     return np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+
 
 def angle_abc(ax, ay, bx, by, cx, cy):
     ab_x = ax - bx
@@ -24,7 +26,8 @@ def angle_abc(ax, ay, bx, by, cx, cy):
     cos_theta = np.clip(cos_theta, -1.0, 1.0)
     return np.arccos(cos_theta) * 180 / np.pi
 
-def extract_features(row, video_width=100, video_height=100):  # Assuming 100x100 for normalization
+
+def extract_features(row, video_width=100, video_height=100):
     nose_x = row['nose_x'] / video_width
     nose_y = row['nose_y'] / video_height
     lsho_x = row['left_shoulder_x'] / video_width
@@ -49,7 +52,7 @@ def extract_features(row, video_width=100, video_height=100):  # Assuming 100x10
     angle_left_shoulder = angle_abc(lear_x, lear_y, lsho_x, lsho_y, nose_x, nose_y)
     angle_right_shoulder = angle_abc(rear_x, rear_y, rsho_x, rsho_y, nose_x, nose_y)
 
-    features = [
+    return [
         dist_nose_shoulders,
         ratio_nose_shoulders,
         neck_tilt_angle,
@@ -58,29 +61,24 @@ def extract_features(row, video_width=100, video_height=100):  # Assuming 100x10
         angle_left_shoulder,
         angle_right_shoulder
     ]
-    return features
 
-scaler = MinMaxScaler()
+
+_model_cache = {}
+_scaler_cache = {}
+
 
 def predict_posture(row, model_path, scaler_path):
-      model = tf.keras.models.load_model(model_path)
-    
-    # Extract features from the row before prediction
-      print(row)
-      features = extract_features(row)  
-      features = np.array(features).reshape(1, -1)  # Reshape for prediction
-      scaler = joblib.load(scaler_path)  # Load the scaler
-      features = scaler.transform(features)  # Apply the same scaling
-      
+    if model_path not in _model_cache:
+        _model_cache[model_path] = tf.keras.models.load_model(model_path)
+    if scaler_path not in _scaler_cache:
+        _scaler_cache[scaler_path] = joblib.load(scaler_path)
 
-      predictions = model.predict(features)  # Pass the extracted features
-      #returns a score out of 100
-      return predictions*100
+    model = _model_cache[model_path]
+    scaler = _scaler_cache[scaler_path]
 
-#use this to test predictions for now. WE can add a better way to get data real time later
-# df = pd.read_csv('./data/posture_data_2.csv',usecols=lambda col: col != 'timestamp')
-# test_row = df.iloc[100]
+    features = extract_features(row)
+    features = np.array(features).reshape(1, -1)
+    features = scaler.transform(features)
 
-
-# output = predict_posture(test_row, './model/final_model.h5')
-# print(output)
+    predictions = model.predict(features)
+    return predictions * 100

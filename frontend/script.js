@@ -19,23 +19,53 @@ const ctx = canvas.getContext('2d');
 let isMonitoring = false;
 let isConnected = false;
 let currentScore = 0;
-let mockWebcam = null;
 let remindersEnabled = false;
 let scoreThreshold = 70;
 let lastReminderTime = 0;
-const REMINDER_COOLDOWN = 30000; // 30 seconds cooldown
-let notificationSound = null;
+const REMINDER_COOLDOWN = 30000;
 let ws = null;
 let videoStream = null;
 const FPS = 10;
 let videoInterval = null;
 let lastScoreUpdate = 0;
 let lastFrameUpdate = 0;
-const SCORE_UPDATE_INTERVAL = 1150; // 1.15 seconds
-const FRAME_UPDATE_INTERVAL = 100; // 100ms for smoother video
+const SCORE_UPDATE_INTERVAL = 1150;
+const FRAME_UPDATE_INTERVAL = 100;
 let scoreChart = null;
 
-// Add these state management functions at the top
+// Reconnection state
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+const BASE_RECONNECT_DELAY = 1000;
+let reconnectTimeout = null;
+
+// Audio context for alert beep
+let audioCtx = null;
+
+function getWebSocketUrl() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}/ws`;
+}
+
+function playAlertBeep() {
+    try {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        const oscillator = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        oscillator.connect(gain);
+        gain.connect(audioCtx.destination);
+        oscillator.frequency.value = 440;
+        gain.gain.value = 0.3;
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.3);
+    } catch (e) {
+        // Audio not supported or blocked
+    }
+}
+
+// Session state management
 function saveSessionState(data, shouldShow = false) {
     localStorage.setItem('lastSessionData', JSON.stringify(data));
     localStorage.setItem('sessionTimestamp', Date.now().toString());
@@ -48,14 +78,12 @@ function clearSessionState() {
     localStorage.removeItem('lastSessionData');
     localStorage.removeItem('sessionTimestamp');
     localStorage.removeItem('showGraph');
-    
-    // Hide popup if it's visible
+
     const popup = document.getElementById('graphPopup');
     if (popup) {
         popup.style.display = 'none';
     }
-    
-    // Destroy chart if it exists
+
     if (scoreChart) {
         scoreChart.destroy();
         scoreChart = null;
@@ -64,40 +92,33 @@ function clearSessionState() {
 
 // Initialize canvas size
 function initCanvas() {
-    const video = document.getElementById('webcam-video');
-    canvas.width = 640;  // Match video dimensions
-    canvas.height = 480; // Match video dimensions
+    canvas.width = 640;
+    canvas.height = 480;
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#94a3b8';
     ctx.textAlign = 'center';
     ctx.font = '16px Inter, sans-serif';
-    ctx.fillText('Camera feed will appear here', canvas.width/2, canvas.height/2);
+    ctx.fillText('Camera feed will appear here', canvas.width / 2, canvas.height / 2);
 }
 
 // Initialize app
 function init() {
     initCanvas();
-    
-    // Event listeners
+
     startButton.addEventListener('click', startMonitoring);
     stopButton.addEventListener('click', stopMonitoring);
     toggleReminderButton.addEventListener('click', toggleReminderSettings);
     saveReminderSettingsButton.addEventListener('click', saveReminderSettings);
-    
+
     thresholdSlider.addEventListener('input', () => {
         thresholdValue.textContent = thresholdSlider.value;
     });
-    
-    // Create audio notification
-    notificationSound = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAzMzMzMzMzMw==");
-    
-    // Update app visuals
+
     updateConnectionStatus(false);
 
-    // Add popup click handler
     const popup = document.getElementById('graphPopup');
-    popup.addEventListener('click', function(e) {
+    popup.addEventListener('click', function (e) {
         if (e.target === popup) {
             popup.style.display = 'none';
             if (scoreChart) {
@@ -105,42 +126,62 @@ function init() {
             }
         }
     });
+
+    // Restore session graph if page was reloaded right after stopping
+    const savedData = localStorage.getItem('lastSessionData');
+    if (savedData && localStorage.getItem('showGraph')) {
+        try {
+            const sessionData = JSON.parse(savedData);
+            if (sessionData) {
+                showSessionGraph(sessionData);
+                localStorage.removeItem('showGraph');
+            }
+        } catch (error) {
+            console.error("Error loading saved session data:", error);
+        }
+    }
 }
 
 // Start posture monitoring
 async function startMonitoring() {
     if (isMonitoring) return;
-    
+
     const webcamReady = await setupWebcam();
     if (!webcamReady) return;
-    
+
     isMonitoring = true;
     startButton.disabled = true;
     stopButton.disabled = false;
     webcamBox.classList.add('monitoring-active');
-    
+    reconnectAttempts = 0;
+
     connectToBackend();
 }
 
 // Stop posture monitoring
 function stopMonitoring() {
     if (!isMonitoring) return;
-    
+
     isMonitoring = false;
     startButton.disabled = false;
     stopButton.disabled = true;
     webcamBox.classList.remove('monitoring-active');
-    
+
+    if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+    }
+
     if (ws && ws.readyState === WebSocket.OPEN) {
-        console.log("Sending stop request to server");
         ws.send(JSON.stringify({ type: 'stop' }));
-        
         setTimeout(() => {
             stopVideoProcessing();
             ws.close();
         }, 2000);
         return;
     }
+
+    stopVideoProcessing();
 }
 
 // Toggle reminder settings panel
@@ -158,8 +199,7 @@ function saveReminderSettings() {
     remindersEnabled = true;
     reminderSettings.style.display = 'none';
     toggleReminderButton.classList.add('active');
-    
-    // Send settings to server
+
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({
             type: 'settings',
@@ -167,36 +207,61 @@ function saveReminderSettings() {
             threshold: scoreThreshold
         }));
     }
-    
-    // Only show connection status changes
+
     showNotification("Settings saved");
 }
 
-// Mock connection to backend
+// Connect to backend via WebSocket
 function connectToBackend() {
-    ws = new WebSocket('ws://localhost:8765');
-    
+    if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+        reconnectTimeout = null;
+    }
+
+    try {
+        ws = new WebSocket(getWebSocketUrl());
+    } catch (e) {
+        showNotification("Failed to connect to server. Is the backend running?", true);
+        resetMonitoringState();
+        return;
+    }
+
     ws.onopen = () => {
         isConnected = true;
+        reconnectAttempts = 0;
         updateConnectionStatus(true);
         showNotification("Connected to posture detection service");
         startVideoProcessing();
     };
-    
+
     ws.onclose = () => {
         isConnected = false;
         updateConnectionStatus(false);
-        showNotification("Disconnected from posture detection service");
         stopVideoProcessing();
+
+        if (isMonitoring && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            const delay = BASE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts);
+            reconnectAttempts++;
+            showNotification(`Connection lost. Reconnecting in ${Math.round(delay / 1000)}s... (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+            reconnectTimeout = setTimeout(connectToBackend, delay);
+        } else if (isMonitoring && reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+            showNotification("Could not reconnect to server. Please restart monitoring.", true);
+            resetMonitoringState();
+        }
     };
-    
+
+    ws.onerror = () => {
+        if (!isConnected && reconnectAttempts === 0) {
+            showNotification("Cannot reach the server. Make sure the backend is running.", true);
+        }
+    };
+
     ws.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
-            
+
             if (data.type === 'session_data') {
-                console.log("Received session data:", data.data);
-                saveSessionState(data.data, true);  // Save with show flag
+                saveSessionState(data.data, true);
                 showSessionGraph(data.data);
             } else {
                 if (data.annotatedFrame) {
@@ -214,10 +279,11 @@ function connectToBackend() {
     };
 }
 
-// Mock disconnection from backend
-function disconnectFromBackend() {
-    isConnected = false;
-    updateConnectionStatus(false);
+function resetMonitoringState() {
+    isMonitoring = false;
+    startButton.disabled = false;
+    stopButton.disabled = true;
+    webcamBox.classList.remove('monitoring-active');
 }
 
 // Update connection status indicator
@@ -233,16 +299,17 @@ function updateConnectionStatus(connected) {
     }
 }
 
-// Update showNotification function to only show connection status
-function showNotification(message) {
-    if (message.includes("Connected") || message.includes("Disconnected") || message.includes("Settings")) {
-        notification.textContent = message;
-        notification.style.display = 'block';
-        
-        setTimeout(() => {
-            notification.style.display = 'none';
-        }, 3000);
-    }
+// Show notification
+function showNotification(message, isError = false) {
+    notification.textContent = message;
+    notification.style.display = 'block';
+    notification.style.background = isError
+        ? 'rgba(239, 68, 68, 0.9)'
+        : 'rgba(139, 92, 246, 0.9)';
+
+    setTimeout(() => {
+        notification.style.display = 'none';
+    }, isError ? 5000 : 3000);
 }
 
 // Update checkPosture function
@@ -251,95 +318,31 @@ function checkPosture(score) {
     scoreDisplay.textContent = score;
     const threshold = parseInt(thresholdSlider.value);
     const progressCircle = document.querySelector('.score-ring-progress');
-    const circumference = 2 * Math.PI * 45; // radius = 45
-    
-    // Update progress ring
+    const circumference = 2 * Math.PI * 45;
+
     const offset = circumference - (score / 100) * circumference;
     progressCircle.style.strokeDashoffset = offset;
-    
+
     if (score >= (threshold + 5)) {
-        progressCircle.style.stroke = '#10b981';  // Green
+        progressCircle.style.stroke = '#10b981';
         webcamBox.classList.remove('bad-posture', 'warning-posture');
         webcamBox.classList.add('good-posture');
     } else if (score >= (threshold - 5)) {
-        progressCircle.style.stroke = '#fbbf24';  // Yellow
+        progressCircle.style.stroke = '#fbbf24';
         webcamBox.classList.remove('bad-posture', 'good-posture');
         webcamBox.classList.add('warning-posture');
     } else {
-        progressCircle.style.stroke = '#ef4444';  // Red
+        progressCircle.style.stroke = '#ef4444';
         webcamBox.classList.remove('good-posture', 'warning-posture');
         webcamBox.classList.add('bad-posture');
-        
-        // Sound notification logic remains the same
+
         if (remindersEnabled && soundNotificationCheckbox.checked) {
             const now = Date.now();
             if (now - lastReminderTime > REMINDER_COOLDOWN) {
                 lastReminderTime = now;
+                playAlertBeep();
             }
         }
-    }
-}
-
-// Trigger posture reminder
-function triggerReminder() {
-    if (visualNotificationCheckbox.checked) {
-        showNotification("Fix your posture!");
-    }
-    
-    if (soundNotificationCheckbox.checked) {
-        notificationSound.play();
-    }
-}
-
-// Start mock webcam feed
-function startMockWebcam() {
-    // In a real app, this would be getUserMedia and a video stream
-    // For this demo, we'll just draw a simple animation
-    
-    const width = canvas.width;
-    const height = canvas.height;
-    
-    mockWebcam = setInterval(() => {
-        // Clear canvas
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, width, height);
-        
-        // Draw a simple silhouette
-        ctx.fillStyle = '#6b7280';
-        
-        // Head
-        ctx.beginPath();
-        ctx.arc(width/2, height/3, 40, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Body
-        ctx.fillRect(width/2 - 25, height/3 + 40, 50, 100);
-        
-        // Generate random posture score (in real app, this would come from your ML model)
-        if (isConnected) {
-            const randomScore = Math.floor(Math.random() * 40) + 40; // Random score between 40-80
-            checkPosture(randomScore);
-        }
-    }, 1000);
-}
-
-// Stop mock webcam feed
-function stopMockWebcam() {
-    if (mockWebcam) {
-        clearInterval(mockWebcam);
-        mockWebcam = null;
-        
-        // Clear canvas
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#94a3b8';
-        ctx.textAlign = 'center';
-        ctx.font = '16px Inter, sans-serif';
-        ctx.fillText('Camera feed will appear here', canvas.width/2, canvas.height/2);
-        
-        // Reset score display
-        scoreDisplay.textContent = '--';
-        scoreDisplay.style.color = 'white';
     }
 }
 
@@ -351,21 +354,29 @@ window.addEventListener('resize', initCanvas);
 
 async function setupWebcam() {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
                 width: { ideal: 640 },
                 height: { ideal: 480 },
                 facingMode: 'user'
-            } 
+            }
         });
         const video = document.getElementById('webcam-video');
         video.srcObject = stream;
-        await video.play(); // Ensure video starts playing
+        await video.play();
         videoStream = stream;
         return true;
     } catch (err) {
         console.error("Error accessing webcam:", err);
-        showNotification("Error accessing webcam. Please make sure it's connected and permissions are granted.");
+        if (err.name === 'NotAllowedError') {
+            showNotification("Camera access denied. Please allow camera access in your browser settings.", true);
+        } else if (err.name === 'NotFoundError') {
+            showNotification("No camera found. Please connect a webcam.", true);
+        } else if (err.name === 'NotReadableError') {
+            showNotification("Camera is in use by another application.", true);
+        } else {
+            showNotification("Could not access webcam: " + err.message, true);
+        }
         return false;
     }
 }
@@ -382,12 +393,10 @@ function startVideoProcessing() {
 
     videoInterval = setInterval(() => {
         const currentTime = Date.now();
-        
+
         if (ws && ws.readyState === WebSocket.OPEN && video.readyState === 4) {
-            // Always draw the video frame for smooth display
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            // Only send frame for processing at specified intervals
+
             if (currentTime - lastFrameUpdate >= FRAME_UPDATE_INTERVAL) {
                 const frame = canvas.toDataURL('image/jpeg', 0.8);
                 ws.send(JSON.stringify({
@@ -421,98 +430,16 @@ function updateAnnotatedFrame(frameData) {
     img.src = frameData;
 }
 
-function createSessionChart(sessionData) {
-    const popup = document.getElementById('graphPopup');
-    const canvas = document.getElementById('popupScoreChart');
-    const closeBtn = document.getElementById('closePopup');
-    
-    if (!Chart || !canvas) {
-        console.error("Chart.js not loaded or canvas not found");
-        return;
-    }
-    
-    // Show popup
-    popup.style.display = 'flex';
-    
-    // Setup close button handler
-    closeBtn.onclick = function() {
-        popup.style.display = 'none';
-        if (scoreChart) {
-            scoreChart.destroy();
-        }
-    };
-    
-    try {
-        if (scoreChart) {
-            scoreChart.destroy();
-        }
-
-        scoreChart = new Chart(canvas.getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: sessionData.map(d => d.timestamp),
-                datasets: [{
-                    label: 'Posture Score',
-                    data: sessionData.map(d => d.score),
-                    borderColor: '#8b5cf6',
-                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                    tension: 0.3,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        labels: {
-                            color: '#f8fafc'
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
-                        },
-                        ticks: {
-                            color: '#cbd5e1'
-                        }
-                    },
-                    x: {
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
-                        },
-                        ticks: {
-                            color: '#cbd5e1',
-                            maxRotation: 45,
-                            minRotation: 45
-                        }
-                    }
-                }
-            }
-        });
-    } catch (error) {
-        console.error("Error creating chart:", error);
-    }
-}
-
-// Update the showSessionGraph function
 function showSessionGraph(sessionData) {
-    console.log('Session data:', sessionData);
-    
     const popup = document.getElementById('graphPopup');
     const canvas = document.getElementById('popupScoreChart');
     const closeBtn = document.getElementById('closePopup');
-    
+
     if (!sessionData || sessionData.length === 0) {
         console.error('No session data available');
         return;
     }
 
-    // Calculate average score
     const averageScore = Math.round(
         sessionData.reduce((sum, d) => sum + d.score, 0) / sessionData.length
     );
@@ -522,30 +449,26 @@ function showSessionGraph(sessionData) {
             scoreChart.destroy();
         }
 
-        // Show popup
         popup.style.display = 'flex';
 
-        // Setup close handlers
-        closeBtn.onclick = function() {
+        closeBtn.onclick = function () {
             popup.style.display = 'none';
             if (scoreChart) {
                 scoreChart.destroy();
             }
-            clearSessionState(); // Clear all session data
+            clearSessionState();
         };
 
-        // Close on clicking outside
-        popup.onclick = function(e) {
+        popup.onclick = function (e) {
             if (e.target === popup) {
                 popup.style.display = 'none';
                 if (scoreChart) {
                     scoreChart.destroy();
                 }
-                clearSessionState(); // Clear all session data
+                clearSessionState();
             }
         };
 
-        // Create new chart
         const ctx = canvas.getContext('2d');
         scoreChart = new Chart(ctx, {
             type: 'line',
@@ -594,17 +517,11 @@ function showSessionGraph(sessionData) {
                     y: {
                         beginAtZero: true,
                         max: 100,
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            color: '#cbd5e1'
-                        }
+                        grid: { display: false },
+                        ticks: { color: '#cbd5e1' }
                     },
                     x: {
-                        grid: {
-                            display: false
-                        },
+                        grid: { display: false },
                         ticks: {
                             color: '#cbd5e1',
                             maxRotation: 45,
@@ -615,9 +532,8 @@ function showSessionGraph(sessionData) {
             }
         });
 
-        // Add export button handler
         const exportButton = document.getElementById('exportButton');
-        exportButton.onclick = function() {
+        exportButton.onclick = function () {
             exportSessionData(sessionData);
         };
 
@@ -626,71 +542,22 @@ function showSessionGraph(sessionData) {
     }
 }
 
-// Add page load handler to clear any existing session
-document.addEventListener('DOMContentLoaded', () => {
-    // Clear any existing session data on page load
-    clearSessionState();
-});
-
-// Add these at the top of script.js
-document.addEventListener('DOMContentLoaded', () => {
-    // Check for saved session data on page load
-    const savedData = localStorage.getItem('lastSessionData');
-    if (savedData) {
-        try {
-            const sessionData = JSON.parse(savedData);
-            // Show graph if stop button was just clicked
-            if (sessionData && localStorage.getItem('showGraph')) {
-                showSessionGraph(sessionData);
-                localStorage.removeItem('showGraph'); // Clear the flag
-            }
-        } catch (error) {
-            console.error("Error loading saved session data:", error);
-        }
-    }
-});
-
-// Add before stopping video processing
-window.addEventListener('beforeunload', () => {
-    // Set flag if stopping monitoring
-    if (!isMonitoring && localStorage.getItem('lastSessionData')) {
-        localStorage.setItem('showGraph', 'true');
-    }
-});
-
-// Add this new function
 function exportSessionData(sessionData) {
-    // Convert data to CSV format
     const csvRows = [];
-    
-    // Add headers
     csvRows.push(['Timestamp', 'Score']);
-    
-    // Add data rows
+
     sessionData.forEach(row => {
         csvRows.push([row.timestamp, row.score]);
     });
-    
-    // Convert to CSV string
+
     const csvContent = csvRows.map(row => row.join(',')).join('\n');
-    
-    // Create blob and download link
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    
-    // Create file name with current date and time
-    const fileName = `posture_session_${new Date().toISOString().slice(0,19).replace(/[:-]/g, '')}.csv`;
-    
-    // Set up download
-    if (window.navigator.msSaveOrOpenBlob) {
-        // For IE
-        window.navigator.msSaveBlob(blob, fileName);
-    } else {
-        // For other browsers
-        link.href = window.URL.createObjectURL(blob);
-        link.setAttribute('download', fileName);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
+    const fileName = `posture_session_${new Date().toISOString().slice(0, 19).replace(/[:-]/g, '')}.csv`;
+
+    link.href = window.URL.createObjectURL(blob);
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
