@@ -80,5 +80,5 @@ def predict_posture(row, model_path, scaler_path):
     features = np.array(features).reshape(1, -1)
     features = scaler.transform(features)
 
-    predictions = model.predict(features)
+    predictions = model(features, verbose=0, training=False).numpy()
     return predictions * 100
