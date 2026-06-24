@@ -1,103 +1,156 @@
-# SitRight - AI-Powered Posture Detection
+# SitRight
 
-## Inspiration
-Did you know?
-On average, people spend 6 hours and 40 minutes in front of a screen daily, and 42% of our waking hours are spent staring at one. Worse yet, 80% of adults will experience back pain at some point in their lives.
+**AI-powered real-time posture detection using your webcam.**
 
-As Computer Science majors and Software Engineers, we understand these stats all too well. Our biggest guilt isn't just missing that semicolon or debugging until late at night—it's the posture we adopt while doing it.
+SitRight monitors your sitting posture while you work, providing instant visual and audio feedback to help you maintain a healthy spine. All processing happens locally — your webcam feed never leaves your machine.
 
-We sit for hours, whether we're coding a startup, writing papers, or even gaming—and no matter what we're doing, poor posture is always the result. Slouching has become a silent culprit, damaging our spines and jeopardizing our health, all while we focus on our screens.
+![SitRight](frontend/assets/SIT%20RIGHT.png)
 
-So, what's the solution?
+## Features
 
-Introducing SitRight—an AI-powered posture corrector designed to save your back, boost your focus, and improve your overall health. SitRight helps you maintain healthy posture throughout your work or play, so you can code longer, feel better, and protect your future.
+- **Real-time posture detection** at 10 FPS via webcam
+- **AI-powered scoring** using a custom TensorFlow neural network trained on posture landmarks
+- **Color-coded feedback** — green (good), yellow (warning), red (poor posture)
+- **Audio alerts** when posture drops below your configured threshold
+- **Session analytics** with interactive Chart.js graphs showing posture trends over time
+- **Customizable threshold** — adjust sensitivity to match your preference
+- **CSV export** — download session data for offline analysis
+- **Privacy-first** — all ML inference runs locally, no data sent to external servers
 
-## What it does
-- Real-time posture detection using your webcam
-- AI-powered analysis of neck and shoulder positioning
-- Visual feedback with color-coded indicators
-- Customizable posture score threshold
-- Audio and visual notifications for poor posture
-- Session tracking with detailed analytics
-- Interactive charts showing posture trends
-- Responsive design that works on any device
-- Privacy-focused processing (all data stays local)
+## Tech Stack
 
-## How we built it
-- **Frontend**: 
-  - Modern HTML5/CSS3 with CSS Grid and Flexbox
-  - Vanilla JavaScript for real-time interactions
-  - Chart.js for data visualization
-  - WebSocket API for real-time communication
+| Layer | Technology |
+|-------|-----------|
+| Frontend | HTML5, CSS3, Vanilla JavaScript, Chart.js |
+| Backend | Python, aiohttp (HTTP + WebSocket) |
+| ML/CV | MediaPipe Pose, TensorFlow/Keras, scikit-learn |
+| Deployment | Docker |
 
-- **Backend**:
-  - Python with asyncio for asynchronous processing
-  - WebSocket server for real-time data streaming
-  - MediaPipe for pose detection and landmark tracking
-  - TensorFlow/Keras for posture classification
-  - scikit-learn for data preprocessing and validation
+## Architecture
 
-- **Machine Learning**:
-  - Custom neural network architecture
-  - Feature engineering for pose landmarks
-  - K-Fold cross-validation
-  - Real-time inference optimization
-  - Data normalization and preprocessing pipeline
+```
+Browser                          Server (Python)
+┌─────────────┐    WebSocket    ┌──────────────────┐
+│ Webcam Feed  │───────────────▶│ aiohttp Server   │
+│ (getUserMedia)│   base64 JPEG  │                  │
+│              │                │ ┌──────────────┐  │
+│ Canvas +     │◀───────────────│ │ MediaPipe    │  │
+│ Score Widget │  score + frame │ │ Pose Detection│  │
+│ Chart.js     │                │ └──────┬───────┘  │
+└─────────────┘                │        │          │
+                               │ ┌──────▼───────┐  │
+                               │ │ TensorFlow   │  │
+                               │ │ Classifier   │  │
+                               │ │ (7 features) │  │
+                               │ └──────────────┘  │
+                               └──────────────────┘
+```
 
-## Challenges we ran into
-1. **Real-time Performance**: Balancing accurate pose detection with smooth performance
-2. **Camera Integration**: Handling different webcam resolutions and aspect ratios
-3. **Model Accuracy**: Fine-tuning the ML model to reduce false positives
-4. **Cross-browser Compatibility**: Ensuring consistent WebSocket connections
-5. **UI Responsiveness**: Creating a fluid experience across different screen sizes
+1. Browser captures webcam frames and sends them as base64-encoded JPEGs over WebSocket
+2. Server runs MediaPipe Pose to extract 26 body landmarks
+3. 7 engineered features (distances, angles, ratios) are computed from the landmarks
+4. A trained Keras neural network classifies posture quality (0-100% score)
+5. Annotated frame + score are sent back to the browser for display
 
-## Accomplishments that we're proud of
-- Achieved real-time pose detection at 10 FPS
-- Created an intuitive and modern UI/UX design
-- Implemented privacy-focused local processing
-- Developed accurate posture classification (>90% accuracy)
-- Built a fully responsive web application
-- Created smooth animations and transitions
+## Quick Start
 
-## What we learned
-- Deep learning model deployment in web applications
-- Real-time video processing techniques
-- WebSocket implementation for streaming data
-- UI/UX design principles for health applications
-- Cross-browser compatibility solutions
-- Performance optimization strategies
+### Option A: Docker (recommended)
 
-## What's next for SitRight
-1. **Mobile App Development**
-   - Native iOS and Android applications
-   - Background monitoring capabilities
+```bash
+git clone https://github.com/arnavdeepaware/SitRight.git
+cd SitRight
+docker compose up --build
+```
 
-2. **Enhanced Features**
-   - Custom posture profiles
-   - Exercise recommendations
-   - Integration with fitness trackers
-   - Team dashboard for office environments
+Open [http://localhost:8765](http://localhost:8765) in your browser.
 
-3. **Machine Learning Improvements**
-   - More sophisticated pose detection
-   - Personalized ML models
-   - Additional posture classifications
+### Option B: Local Python
 
-4. **Enterprise Solutions**
-   - Team management features
-   - Analytics dashboard
-   - Integration with workplace wellness programs
+```bash
+git clone https://github.com/arnavdeepaware/SitRight.git
+cd SitRight/backend
 
-## Try it out
-Visit [SitRight Demo](http://localhost:8000) to experience better posture today!
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 
-*Note: Requires a webcam and modern web browser*
+# Install dependencies
+pip install -r requirements.txt
 
-## Team
-- [Team Member 1] - Frontend Development
-- [Team Member 2] - Machine Learning
-- [Team Member 3] - Backend Development
-- [Team Member 4] - UI/UX Design
+# Start the server
+python websocket_server.py
+```
+
+Open [http://localhost:8765](http://localhost:8765) in your browser.
+
+## Project Structure
+
+```
+SitRight/
+├── frontend/
+│   ├── index.html          # Main app interface
+│   ├── landing.html        # Landing page
+│   ├── script.js           # App logic, WebSocket client, charts
+│   ├── styles.css          # App styles (dark theme)
+│   ├── landing.css         # Landing page styles
+│   └── assets/             # Images
+├── backend/
+│   ├── websocket_server.py # HTTP + WebSocket server (aiohttp)
+│   ├── pose_detector.py    # MediaPipe landmark extraction
+│   ├── requirements.txt    # Python dependencies
+│   └── Procfile            # Deployment process file
+├── ml/
+│   ├── Predictor.py        # Feature engineering + model inference
+│   ├── sequential.py       # Model training script
+│   └── model/
+│       ├── posture_model.h5  # Trained Keras model
+│       └── scaler.pkl        # Feature scaler
+├── Dockerfile
+├── docker-compose.yml
+└── .env.example
+```
+
+## Deployment
+
+SitRight is designed for single-container deployment. The aiohttp server serves both the static frontend and the WebSocket API on a single port.
+
+### Render
+
+1. Push your repo to GitHub
+2. Create a new **Web Service** on [Render](https://render.com)
+3. Connect your repository
+4. Render auto-detects the `Dockerfile`
+5. Set environment variable `PORT` (Render provides this automatically)
+6. Deploy
+
+> **Note:** The free tier has 512MB RAM. TensorFlow + MediaPipe need ~512MB at runtime, so a paid tier (768MB+) is recommended for reliable performance.
+
+### Railway / Fly.io
+
+Both platforms support Dockerfile-based deployments with similar setup. Push your repo, connect it, and deploy.
+
+> **Important:** Deployed versions require HTTPS for webcam access (`getUserMedia` is blocked on insecure origins). Render, Railway, and Fly.io all provide HTTPS by default.
+
+## Known Limitations
+
+- **Single user per server instance** — MediaPipe Pose is not thread-safe; concurrent WebSocket connections share the same pose detector
+- **Requires webcam** — no file upload or video playback mode
+- **HTTPS required for deployment** — browsers block `getUserMedia` on HTTP (except localhost)
+- **Model size** — TensorFlow + MediaPipe add ~500MB to the Docker image
+- **Lighting sensitivity** — pose detection accuracy degrades in low-light conditions
+
+## Future Improvements
+
+- Client-side inference with TensorFlow.js + MediaPipe JS (eliminates backend)
+- Multi-user support with per-connection pose detector instances
+- Exercise recommendations based on detected posture patterns
+- Historical session tracking with persistent storage
+- Mobile-responsive webcam interface
+
+## Motivation
+
+People spend an average of 6 hours and 40 minutes daily in front of screens, and 80% of adults experience back pain at some point. Poor posture during long work sessions contributes to chronic spine issues. SitRight was built to provide a simple, privacy-respecting tool that helps you stay aware of your posture while you work.
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+MIT
