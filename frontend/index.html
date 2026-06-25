@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SitRight - Posture Detection</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="script.js" defer></script>
+    <script src="posture-model.js"></script>
+    <script type="module" src="script.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -95,9 +96,9 @@
             <button id="save-reminder-settings" class="btn-primary">Save Settings</button>
         </div>
         
-        <div class="connection-status">
-            <span class="status-indicator status-disconnected" id="connection-indicator"></span>
-            <span id="connection-status-text">Not connected to posture detection service</span>
+        <div class="connection-status" id="model-status">
+            <span class="status-indicator status-disconnected" id="model-status-indicator"></span>
+            <span id="model-status-text">Click Start to begin</span>
         </div>
         
         <div class="session-chart" id="session-chart" style="display: none;">
