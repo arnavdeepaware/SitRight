@@ -1,3 +1,5 @@
+import { PoseLandmarker, FilesetResolver, DrawingUtils } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs';
+
 // DOM Elements
 const startButton = document.getElementById('start-btn');
 const stopButton = document.getElementById('stop-btn');
@@ -7,8 +9,6 @@ const thresholdSlider = document.getElementById('threshold-slider');
 const thresholdValue = document.getElementById('threshold-value');
 const saveReminderSettingsButton = document.getElementById('save-reminder-settings');
 const scoreDisplay = document.getElementById('score-display');
-const connectionIndicator = document.getElementById('connection-indicator');
-const connectionStatusText = document.getElementById('connection-status-text');
 const notification = document.getElementById('notification');
 const soundNotificationCheckbox = document.getElementById('sound-notification');
 const canvas = document.getElementById('webcam-canvas');
@@ -16,36 +16,22 @@ const webcamBox = document.getElementById('webcam-box');
 const ctx = canvas.getContext('2d');
 
 // App state
+let poseLandmarker = null;
 let isMonitoring = false;
-let isConnected = false;
+let lastInferenceTime = 0;
+const INFERENCE_INTERVAL = 100; // ~10 FPS
+let sessionData = [];
 let currentScore = 0;
 let remindersEnabled = false;
 let scoreThreshold = 70;
 let lastReminderTime = 0;
 const REMINDER_COOLDOWN = 30000;
-let ws = null;
 let videoStream = null;
-const FPS = 10;
 let videoInterval = null;
-let lastScoreUpdate = 0;
-let lastFrameUpdate = 0;
-const SCORE_UPDATE_INTERVAL = 1150;
-const FRAME_UPDATE_INTERVAL = 100;
 let scoreChart = null;
-
-// Reconnection state
-let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 5;
-const BASE_RECONNECT_DELAY = 1000;
-let reconnectTimeout = null;
 
 // Audio context for alert beep
 let audioCtx = null;
-
-function getWebSocketUrl() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${protocol}//${window.location.host}/ws`;
-}
 
 function playAlertBeep() {
     try {
@@ -102,6 +88,102 @@ function initCanvas() {
     ctx.fillText('Camera feed will appear here', canvas.width / 2, canvas.height / 2);
 }
 
+// Initialize PoseLandmarker
+async function initPoseLandmarker() {
+    const vision = await FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+    );
+    poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+        baseOptions: {
+            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task',
+            delegate: 'GPU'
+        },
+        runningMode: 'VIDEO',
+        numPoses: 1
+    });
+}
+
+// Update model status indicator
+function updateModelStatus(state) {
+    const indicator = document.getElementById('model-status-indicator');
+    const text = document.getElementById('model-status-text');
+
+    // Remove all status classes
+    indicator.classList.remove('status-connected', 'status-disconnected', 'status-loading');
+
+    switch (state) {
+        case 'idle':
+            indicator.classList.add('status-disconnected');
+            indicator.style.backgroundColor = '#6b7280';
+            indicator.style.boxShadow = 'none';
+            text.textContent = 'Click Start to begin';
+            break;
+        case 'loading':
+            indicator.classList.add('status-loading');
+            indicator.style.backgroundColor = '';
+            indicator.style.boxShadow = '';
+            text.textContent = 'Loading AI model...';
+            break;
+        case 'ready':
+            indicator.classList.add('status-connected');
+            indicator.style.backgroundColor = '';
+            indicator.style.boxShadow = '';
+            text.textContent = 'Running locally';
+            break;
+        case 'error':
+            indicator.classList.add('status-disconnected');
+            indicator.style.backgroundColor = '';
+            indicator.style.boxShadow = '';
+            text.textContent = 'Model failed to load';
+            break;
+    }
+}
+
+// Draw skeleton overlay on canvas
+function drawSkeleton(landmarks) {
+    const cvs = document.getElementById('webcam-canvas');
+    const context = cvs.getContext('2d');
+    const video = document.getElementById('webcam-video');
+    context.drawImage(video, 0, 0, cvs.width, cvs.height);
+    const drawingUtils = new DrawingUtils(context);
+    drawingUtils.drawConnectors(landmarks, PoseLandmarker.POSE_CONNECTIONS, { color: '#FFFFFF', lineWidth: 2 });
+    drawingUtils.drawLandmarks(landmarks, { radius: 3, color: '#8b5cf6', fillColor: '#8b5cf6' });
+}
+
+// Inference loop using requestAnimationFrame
+function inferenceLoop(timestamp) {
+    if (!isMonitoring) return;
+
+    const video = document.getElementById('webcam-video');
+
+    if (timestamp - lastInferenceTime >= INFERENCE_INTERVAL) {
+        lastInferenceTime = timestamp;
+
+        if (video.readyState >= 2) {
+            const result = poseLandmarker.detectForVideo(video, timestamp);
+
+            if (result.landmarks && result.landmarks.length > 0) {
+                const landmarks = result.landmarks[0];
+                const features = extractFeatures(landmarks, video.videoWidth, video.videoHeight);
+                const score = predictPosture(features);
+                checkPosture(score);
+                sessionData.push({
+                    timestamp: new Date().toLocaleTimeString(),
+                    score: score
+                });
+                drawSkeleton(landmarks);
+            } else {
+                // No landmarks detected, just draw raw video
+                const cvs = document.getElementById('webcam-canvas');
+                const context = cvs.getContext('2d');
+                context.drawImage(video, 0, 0, cvs.width, cvs.height);
+            }
+        }
+    }
+
+    requestAnimationFrame(inferenceLoop);
+}
+
 // Initialize app
 function init() {
     initCanvas();
@@ -115,7 +197,7 @@ function init() {
         thresholdValue.textContent = thresholdSlider.value;
     });
 
-    updateConnectionStatus(false);
+    updateModelStatus('idle');
 
     const popup = document.getElementById('graphPopup');
     popup.addEventListener('click', function (e) {
@@ -131,9 +213,9 @@ function init() {
     const savedData = localStorage.getItem('lastSessionData');
     if (savedData && localStorage.getItem('showGraph')) {
         try {
-            const sessionData = JSON.parse(savedData);
-            if (sessionData) {
-                showSessionGraph(sessionData);
+            const data = JSON.parse(savedData);
+            if (data) {
+                showSessionGraph(data);
                 localStorage.removeItem('showGraph');
             }
         } catch (error) {
@@ -149,38 +231,42 @@ async function startMonitoring() {
     const webcamReady = await setupWebcam();
     if (!webcamReady) return;
 
-    isMonitoring = true;
-    startButton.disabled = true;
-    stopButton.disabled = false;
-    webcamBox.classList.add('monitoring-active');
-    reconnectAttempts = 0;
+    updateModelStatus('loading');
+    if (!poseLandmarker) {
+        try {
+            await initPoseLandmarker();
+        } catch (e) {
+            console.error('Failed to load pose model:', e);
+            updateModelStatus('error');
+            return;
+        }
+    }
+    updateModelStatus('ready');
 
-    connectToBackend();
+    isMonitoring = true;
+    sessionData = [];
+    document.getElementById('start-btn').disabled = true;
+    document.getElementById('stop-btn').disabled = false;
+    document.getElementById('webcam-box').classList.add('monitoring-active');
+
+    lastInferenceTime = 0;
+    requestAnimationFrame(inferenceLoop);
 }
 
 // Stop posture monitoring
 function stopMonitoring() {
     if (!isMonitoring) return;
+    isMonitoring = false; // this stops the rAF loop
 
-    isMonitoring = false;
-    startButton.disabled = false;
-    stopButton.disabled = true;
-    webcamBox.classList.remove('monitoring-active');
+    document.getElementById('start-btn').disabled = false;
+    document.getElementById('stop-btn').disabled = true;
+    document.getElementById('webcam-box').classList.remove('monitoring-active');
+    updateModelStatus('idle');
 
-    if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-        reconnectTimeout = null;
+    if (sessionData.length > 0) {
+        saveSessionState(sessionData, true);
+        showSessionGraph(sessionData);
     }
-
-    if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'stop' }));
-        setTimeout(() => {
-            stopVideoProcessing();
-            ws.close();
-        }, 2000);
-        return;
-    }
-
     stopVideoProcessing();
 }
 
@@ -200,103 +286,7 @@ function saveReminderSettings() {
     reminderSettings.style.display = 'none';
     toggleReminderButton.classList.add('active');
 
-    if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-            type: 'settings',
-            sound: soundNotificationCheckbox.checked,
-            threshold: scoreThreshold
-        }));
-    }
-
     showNotification("Settings saved");
-}
-
-// Connect to backend via WebSocket
-function connectToBackend() {
-    if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-        reconnectTimeout = null;
-    }
-
-    try {
-        ws = new WebSocket(getWebSocketUrl());
-    } catch (e) {
-        showNotification("Failed to connect to server. Is the backend running?", true);
-        resetMonitoringState();
-        return;
-    }
-
-    ws.onopen = () => {
-        isConnected = true;
-        reconnectAttempts = 0;
-        updateConnectionStatus(true);
-        showNotification("Connected to posture detection service");
-        startVideoProcessing();
-    };
-
-    ws.onclose = () => {
-        isConnected = false;
-        updateConnectionStatus(false);
-        stopVideoProcessing();
-
-        if (isMonitoring && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-            const delay = BASE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts);
-            reconnectAttempts++;
-            showNotification(`Connection lost. Reconnecting in ${Math.round(delay / 1000)}s... (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
-            reconnectTimeout = setTimeout(connectToBackend, delay);
-        } else if (isMonitoring && reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-            showNotification("Could not reconnect to server. Please restart monitoring.", true);
-            resetMonitoringState();
-        }
-    };
-
-    ws.onerror = () => {
-        if (!isConnected && reconnectAttempts === 0) {
-            showNotification("Cannot reach the server. Make sure the backend is running.", true);
-        }
-    };
-
-    ws.onmessage = (event) => {
-        try {
-            const data = JSON.parse(event.data);
-
-            if (data.type === 'session_data') {
-                saveSessionState(data.data, true);
-                showSessionGraph(data.data);
-            } else {
-                if (data.annotatedFrame) {
-                    updateAnnotatedFrame(data.annotatedFrame);
-                }
-                if (data.score !== undefined) {
-                    const score = data.score;
-                    document.getElementById('score-display').textContent = `${score}%`;
-                    checkPosture(score);
-                }
-            }
-        } catch (error) {
-            console.error("Error processing message:", error);
-        }
-    };
-}
-
-function resetMonitoringState() {
-    isMonitoring = false;
-    startButton.disabled = false;
-    stopButton.disabled = true;
-    webcamBox.classList.remove('monitoring-active');
-}
-
-// Update connection status indicator
-function updateConnectionStatus(connected) {
-    if (connected) {
-        connectionIndicator.classList.remove('status-disconnected');
-        connectionIndicator.classList.add('status-connected');
-        connectionStatusText.textContent = 'Connected to posture detection service';
-    } else {
-        connectionIndicator.classList.remove('status-connected');
-        connectionIndicator.classList.add('status-disconnected');
-        connectionStatusText.textContent = 'Not connected to posture detection service';
-    }
 }
 
 // Show notification
@@ -381,34 +371,6 @@ async function setupWebcam() {
     }
 }
 
-function startVideoProcessing() {
-    const video = document.getElementById('webcam-video');
-    const canvas = document.getElementById('webcam-canvas');
-    const ctx = canvas.getContext('2d');
-
-    video.addEventListener('play', () => {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-    });
-
-    videoInterval = setInterval(() => {
-        const currentTime = Date.now();
-
-        if (ws && ws.readyState === WebSocket.OPEN && video.readyState === 4) {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            if (currentTime - lastFrameUpdate >= FRAME_UPDATE_INTERVAL) {
-                const frame = canvas.toDataURL('image/jpeg', 0.8);
-                ws.send(JSON.stringify({
-                    type: 'frame',
-                    data: frame
-                }));
-                lastFrameUpdate = currentTime;
-            }
-        }
-    }, 1000 / FPS);
-}
-
 function stopVideoProcessing() {
     if (videoInterval) {
         clearInterval(videoInterval);
@@ -420,28 +382,18 @@ function stopVideoProcessing() {
     }
 }
 
-function updateAnnotatedFrame(frameData) {
-    const canvas = document.getElementById('webcam-canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    img.onload = () => {
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    };
-    img.src = frameData;
-}
-
-function showSessionGraph(sessionData) {
+function showSessionGraph(data) {
     const popup = document.getElementById('graphPopup');
-    const canvas = document.getElementById('popupScoreChart');
+    const graphCanvas = document.getElementById('popupScoreChart');
     const closeBtn = document.getElementById('closePopup');
 
-    if (!sessionData || sessionData.length === 0) {
+    if (!data || data.length === 0) {
         console.error('No session data available');
         return;
     }
 
     const averageScore = Math.round(
-        sessionData.reduce((sum, d) => sum + d.score, 0) / sessionData.length
+        data.reduce((sum, d) => sum + d.score, 0) / data.length
     );
 
     try {
@@ -469,14 +421,14 @@ function showSessionGraph(sessionData) {
             }
         };
 
-        const ctx = canvas.getContext('2d');
-        scoreChart = new Chart(ctx, {
+        const chartCtx = graphCanvas.getContext('2d');
+        scoreChart = new Chart(chartCtx, {
             type: 'line',
             data: {
-                labels: sessionData.map(d => d.timestamp),
+                labels: data.map(d => d.timestamp),
                 datasets: [{
                     label: 'Posture Score',
-                    data: sessionData.map(d => d.score),
+                    data: data.map(d => d.score),
                     borderColor: '#8b5cf6',
                     backgroundColor: 'rgba(139, 92, 246, 0.1)',
                     tension: 0.3,
@@ -484,7 +436,7 @@ function showSessionGraph(sessionData) {
                 },
                 {
                     label: 'Average Score',
-                    data: Array(sessionData.length).fill(averageScore),
+                    data: Array(data.length).fill(averageScore),
                     borderColor: '#10b981',
                     borderWidth: 2,
                     borderDash: [5, 5],
@@ -534,7 +486,7 @@ function showSessionGraph(sessionData) {
 
         const exportButton = document.getElementById('exportButton');
         exportButton.onclick = function () {
-            exportSessionData(sessionData);
+            exportSessionData(data);
         };
 
     } catch (error) {
@@ -542,11 +494,11 @@ function showSessionGraph(sessionData) {
     }
 }
 
-function exportSessionData(sessionData) {
+function exportSessionData(data) {
     const csvRows = [];
     csvRows.push(['Timestamp', 'Score']);
 
-    sessionData.forEach(row => {
+    data.forEach(row => {
         csvRows.push([row.timestamp, row.score]);
     });
 

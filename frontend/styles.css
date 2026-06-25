@@ -302,6 +302,17 @@ input[type="checkbox"] {
     box-shadow: 0 0 5px #ef4444;
 }
 
+.status-loading {
+    background-color: #eab308;
+    box-shadow: 0 0 8px rgba(234, 179, 8, 0.6);
+    animation: statusPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
 .connection-status {
     margin-top: 2rem;
     padding: 0.75rem 1.5rem;
