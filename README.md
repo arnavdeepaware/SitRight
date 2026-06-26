@@ -10,6 +10,12 @@ This project started at a hackathon with a server-side Python architecture, then
 
 ---
 
+## Motivation
+
+The average person spends over 6 hours daily in front of screens. Chronic poor posture during desk work is a leading contributor to neck and lower back pain in young adults. SitRight was built to be a frictionless, privacy-respecting tool — no app install, no account, no data leaving your machine — that makes posture awareness as passive as possible.
+
+---
+
 ## What It Does
 
 1. Captures your webcam feed at ~10 FPS
@@ -19,17 +25,6 @@ This project started at a hackathon with a server-side Python architecture, then
 5. Displays a color-coded score with an annotated skeleton overlay on the live canvas
 
 All processing happens locally. No network requests during inference.
-
----
-
-## Tech Stack
-
-| Layer | Technology | Why |
-|-------|-----------|-----|
-| Frontend | HTML5, CSS3, JavaScript (ES Modules), Chart.js | No framework overhead; runs anywhere with a browser |
-| ML — Browser | MediaPipe Tasks-Vision JS (pose detection), Custom Dense Neural Network (929 params, 4 layers, plain JS forward pass) | Real-time inference without server round-trip; WebGL acceleration |
-| ML — Training | Python, TensorFlow/Keras, scikit-learn, MediaPipe Python | Offline training pipeline in `ml/`; model weights exported to JS |
-| Deployment | Any static hosting (GitHub Pages, Netlify, Vercel) | No server required — zero cost, zero maintenance |
 
 ---
 
@@ -100,6 +95,17 @@ The model is not a wrapper around a pre-existing posture API. Every layer was de
 - Session analytics with interactive Chart.js line graph
 - CSV export of session data
 - Complete privacy — webcam feed never leaves the device
+
+---
+
+## Tech Stack
+
+| Layer | Technology | Why |
+|-------|-----------|-----|
+| Frontend | HTML5, CSS3, JavaScript (ES Modules), Chart.js | No framework overhead; runs anywhere with a browser |
+| ML — Browser | MediaPipe Tasks-Vision JS (pose detection), Custom Dense Neural Network (929 params, 4 layers, plain JS forward pass) | Real-time inference without server round-trip; WebGL acceleration |
+| ML — Training | Python, TensorFlow/Keras, scikit-learn, MediaPipe Python | Offline training pipeline in `ml/`; model weights exported to JS |
+| Deployment | Any static hosting (GitHub Pages, Netlify, Vercel) | No server required — zero cost, zero maintenance |
 
 ---
 
@@ -293,12 +299,6 @@ This analysis led directly to v2: move inference to the browser, eliminate the n
 - **HTTPS required in production** — browsers block `getUserMedia` on non-secure origins
 - **Lighting sensitivity** — MediaPipe landmark confidence degrades in low light or with glasses/hats occluding the face
 - **Fixed camera angle assumption** — the model was trained on front-facing webcam data; steep angles (looking down at a laptop) reduce accuracy
-
----
-
-## Motivation
-
-The average person spends over 6 hours daily in front of screens. Chronic poor posture during desk work is a leading contributor to neck and lower back pain in young adults. SitRight was built to be a frictionless, privacy-respecting tool — no app install, no account, no data leaving your machine — that makes posture awareness as passive as possible.
 
 ---
 
