@@ -193,6 +193,36 @@ The migration from server-side to browser-side inference was motivated by produc
 
 **Model details:** 929 parameters across 4 dense layers. 7 input features, MinMax-scaled, with weights hardcoded directly in `posture-model.js`. The forward pass is a plain JS matrix multiply — no ML framework loaded at runtime. MediaPipe JS handles pose detection with WebGL GPU acceleration.
 
+#### Observed Performance (v2 — Local Inference)
+
+The following metrics were captured during local testing after migration:
+
+| Metric | Observed Value |
+|--------|---------------|
+| Per-frame inference latency | <50ms (vs ~500ms round-trip in v1) |
+| MediaPipe pose detection (WebGL) | ~20-35ms |
+| Neural network forward pass (plain JS) | <1ms |
+| Effective frame rate | ~10 FPS (throttled via `requestAnimationFrame`) |
+| First-load time (MediaPipe model download) | ~2-5 seconds (CDN, cached after first run) |
+| Subsequent load time | <500ms (browser cache) |
+| Lag accumulation over session | None — no buffer to fill |
+
+#### Implementation Challenges
+
+1. **Coordinate normalization mismatch (silent wrong output)** — The Python training pipeline had a non-obvious coordinate transform: MediaPipe returns landmarks in normalized [0,1] space, `pose_detector.py` multiplied them by frame pixel dimensions to get pixel coordinates, then `Predictor.py` divided by a hardcoded `video_width=100, video_height=100` — not the actual frame dimensions. This means the model was trained on features computed from coordinates in roughly the 0–6.4 range, not [0,1]. Porting this incorrectly would produce wrong scores with no error or warning. Catching it required tracing the full data path from MediaPipe output to model input and running the JS implementation against a known Python test case (`score: 88`) before any other code was written.
+
+2. **Model architecture undocumented in source** — The training script (`ml/sequential.py`) and original README both described a 5-layer network (32→16→8→4→1). The actual saved `.h5` was a 4-layer network (32→16→8→1). These differ by one layer and ~36 parameters. The discrepancy was caught by extracting and counting weights from the file directly. The `.h5` is ground truth; comments and docs were wrong.
+
+3. **ES module vs. global scope** — MediaPipe JS requires `import` syntax, which forces `script.js` to be a `type="module"` file. Modules have their own scope — globals declared in one module aren't automatically visible in another. But `posture-model.js` (loaded as a plain `<script>` before the module) needs to expose `extractFeatures()` and `predictPosture()` to `script.js`. The fix was intentional: load `posture-model.js` as a regular script (attaches to `window`), then load `script.js` as a module. Both files share the global scope, which is the correct behavior here since `posture-model.js` is effectively a statically-linked dependency with no imports of its own.
+
+4. **Weight portability tradeoff** — Hardcoding 929 parameters directly in JS eliminates a model-loading step and removes any runtime dependency on TensorFlow.js or ONNX. The tradeoff is that retraining the model requires re-extracting the weights and updating `posture-model.js`. At this model size that's a 30-second Python script, not a real concern — but it's the wrong pattern for a model that changes frequently.
+
+#### What v2 Taught Me
+
+The migration confirmed that the bottleneck in v1 was never compute — it was the network. Moving 640×480 JPEG frames from a browser to a cloud VM and back at 10 FPS generates ~1.2MB/s of traffic and adds 80-150ms of irreducible latency regardless of how fast the server processes the frame. On local hardware, the same inference took ~30ms end-to-end. That 16× difference is purely architectural.
+
+The more transferable lesson: model size determines what deployment options are viable. At 929 parameters (3.6KB of weights), this model can be hardcoded in JavaScript, hosted on a CDN, and run in a browser tab. At 50MB, it becomes a file to download. At 500MB, it needs a server. Choosing the right model size for the deployment target is a design decision, not just a training one.
+
 ---
 
 ### Previous Architecture (v1) — Server-Side Inference
